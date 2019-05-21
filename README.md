@@ -25,6 +25,8 @@ pip install numpy
 pip install scipy
 pip install netcdf4
 ```
+If you don't have sudo privileges, then you can install the same packages with
+the `--user` option. i.e. `pip install numpy --user` etc.
 
 **NOTE:** For installing `netcdf4`, you'll need to insure you have the correct
 binary requirements (HDF5 C libraries installed, netCDF-4 C Library install,
@@ -50,10 +52,20 @@ path:
 export PATH=${PATH}:/path/to/install/dir
 ```
 
-# Running<a name="Running"/>
-Assuming the steps in 'Downloading & Installing' finished successfully, you can
-now run the program by running:
+4. Test to see if the installation ran correctly by running:
 ```
 limited-area
 ```
+
+# Running<a name="Running"/>
+
+At any point in time, you can pass the `-h` or `--help` flag to `limited-area`
+to generate a help message and usage statement. The command line usage is:
+
+```
+limited-area [options] points grid
+```
+
+Where `points` is a points specification file, and where `grid` is a global
+MPAS NetCDF grid file.
 
