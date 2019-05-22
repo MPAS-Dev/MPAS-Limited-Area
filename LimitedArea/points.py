@@ -60,6 +60,9 @@ LatN, LonN
 def PointsParser(self, file, *args, **kwargs):
     self.points = []
 
+    # Kwargs
+    self._DEBUG_ = kwargs.get('DEBUG', 0)
+
     if not os.path.isfile(file):
         print("ERROR: This points file could not be found")
         sys.exit(-1)

@@ -24,7 +24,9 @@ vertex_map
 '''
 
 class MeshHandler:
-    def __init__(self, fname):
+    def __init__(self, fname, *args, **kwargs):
+        self._DEBUG_ = kwargs.get('DEBUG', 0)
+
         if self.check_file(fname):
             return
         else:
@@ -35,8 +37,11 @@ class MeshHandler:
             #ncfile = Dataset(fname, 'r')
             try:
                 self.mesh = Dataset(fname, 'r')
-                self.print_all_dimensions()
-                self.print_all_variables()
+                if self._DEBUG_ > 1:
+                    print("DEBUG: Mesh's dimensions: ", fname)
+                    self.print_all_dimensions()
+                    print("DEBUG: Mesh's variables: ", fname)
+                    self.print_all_variables()
                 return True
             except OSError as E: 
                 print("ERROR: ", E)

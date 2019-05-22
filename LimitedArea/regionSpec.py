@@ -59,6 +59,9 @@ def normalize_cords(lat, lon):
 class RegionSpec:
     def __init__(self, method='points', *args, **kwargs):
 
+        # Kwargs
+        self._DEBUG_ = kwargs.get('DEBUG', 0)
+
         if method == 'Points' or method == 'points':
             self._gen_spec = create_bound_method(PointsParser, self)
             self.method = 'POINTS'

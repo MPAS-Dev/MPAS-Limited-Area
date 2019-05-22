@@ -48,11 +48,11 @@ options.add_argument('-v', '--verbose',
 args, unkown = parser.parse_known_args()
 
 
-DEBUG_VALUE = args.verbose
-if  DEBUG_VALUE > 0 :
-    print("DEBUG: DEBUG_VALUE set to ", DEBUG_VALUE, '\n')
+DEBUG = args.verbose
+if  DEBUG > 0 :
+    print("DEBUG: DEBUG set to verbose level ", DEBUG, '\n')
 
-if DEBUG_VALUE > 1 :
+if DEBUG > 1 :
     print("DEBUG: Grid File: ", args.grid)
     print("DEBUG: Points File: ", args.points)
     print("DEBUG: Output: ", args.output)
@@ -63,7 +63,7 @@ regional_area = LimitedArea(args.grid,
                             args.points, 
                             output=args.output,
                             algorithm=args.algorithm,
-                            DEBUG_VALUE=DEBUG_VALUE)
+                            DEBUG=DEBUG)
 
 regional_area.gen_region()
 

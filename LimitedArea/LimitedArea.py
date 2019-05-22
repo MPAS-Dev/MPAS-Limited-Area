@@ -47,15 +47,15 @@ class LimitedArea():
         '''
         self.meshes = []
 
-        self._DEBUG_VALUE = kwargs.get('DEBUG_VALUE', 0)
+        self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.algorithm = kwargs.get('algorithm', 'follow')
 
         # Check to see that all of the meshes exists and that they are netcdfs
         for mesh in mesh_files:
             if os.path.isfile(mesh):
-                self.meshes.append(MeshHandler(mesh))
+                self.meshes.append(MeshHandler(mesh, *args, **kwargs))
 
-                if self._DEBUG_VALUE > 0: 
+                if self._DEBUG_ > 0:
                     print("DEBUG: ", mesh, " is a valid NetCDF File\n")
             else:
                 print("ERROR: Mesh file was not found", mesh)
@@ -65,15 +65,13 @@ class LimitedArea():
         # and see that is is specified correctly!
         if os.path.isfile(region):
             self.region_file = region
-        else:
-            print("ERROR: Region specification file was not found")
             sys.exit(-1)
 
         if regionFormat == 'points':
-            self.regionSpec = RegionSpec(method=regionFormat)
+            self.regionSpec = RegionSpec(method=regionFormat, *args, **kwargs)
             self.regionFormat = 'points'
         elif regionFormat == 'shape' .OR. regionFormat == 'shapeFile':
-            self.regionSpec = RegionSpec(method=regionFormat)
+            self.regionSpec = RegionSpec(method=regionFormat, *args, **kwargs)
             self.regionFormat = 'shape'
         else:
             raise NotImplementedError("REGION SPEC IS NOT IMPLMENTED "
@@ -101,7 +99,7 @@ class LimitedArea():
         # Call the regionSpec to generate `name, in_point, points`
         name, in_point, points = self.regionSpec.gen_spec(self.region_file)
 
-        if self._DEBUG_VALUE > 0:
+        if self._DEBUG_ > 0:
             print("DEBUG: Region Spec has been generated")
             print("DEBUG: Name: ", name)
             print("DEBUG: in_point: ", in_point)
@@ -115,12 +113,15 @@ class LimitedArea():
             self.flood_fill(mesh, in_point, boundary)
     
 
-    def gen_output_filename(self, mesh_file, points):
+    def gen_output_filename(self, mesh, points):
         pass
 
 
     ''''''''''''''''''''''''''''''
     ''''''''''''''''''''''''''''''
+
+    def flood_fill(self, mesh, points):
+        pass
     
     ''' Custom Algorithms '''
 
@@ -144,8 +145,9 @@ class LimitedArea():
         inside_point = mesh.nearest_cell(in_point[0], 
                                          in_point[1])
 
-        print("DEBUG: Boundary Cells: ", boundry_cells)
-        print("DEBUG: Inside point: ", inside_point)
+        if self._DEBUG_ > 0:
+            print("DEBUG: Boundary Cells: ", boundry_cells)
+            print("DEBUG: Inside point: ", inside_point)
 
 
         # Create the bdyMask fields
@@ -157,7 +159,6 @@ class LimitedArea():
         
 
         # TODO: Test this with the enumerate Built-in function
-
         for i in range(len(boundry_cells)):
             source_cell = boundry_cells[i]
             target_cell = boundry_cells[i % len(boundry_cells)]
@@ -169,13 +170,13 @@ class LimitedArea():
                                     lonCell[target_cell],
                                     sphere_radius)
         
-            print("DEBUG: Source Cell x, y, z: ", xs, ys, zs)
-            print("DEBUG: Target Cell x, y, z: ", xt, yt, zt)
+            if self._DEBUG_ > 0:
+                print("DEBUG: Source Cell x, y, z: ", xs, ys, zs)
+                print("DEBUG: Target Cell x, y, z: ", xt, yt, zt)
 
             cross = np.cross([xs, ys, zs], [xt, yt, zt])
             cross = cross / np.linalg.norm(cross) # Unit Vector
 
-            
             
     def greedy(self, mesh, in_point, points, *args, **kwargs):
         pass
