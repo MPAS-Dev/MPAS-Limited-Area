@@ -18,59 +18,55 @@ a location of our choosing.
 
 0. Insure that we have the correct dependencies:
 
-If we have sudo privileges on your machine, you can install `scipy`, `numpy`
-and `netcdf4` using pip as one normally would:
+Install the python dependencies, if they are not already installed. If pip
+responds with a 'permission denied', you may need to use the '--user' to
+install these.
 ```
-pip install numpy
-pip install scipy
-pip install netcdf4
+> pip install numpy
+> pip install netcdf4
 ```
-If you don't have sudo privileges, then you can install the same packages with
-the `--user` option. i.e. `pip install numpy --user` etc.
-
 **NOTE:** For installing `netcdf4`, you'll need to insure you have the correct
 binary requirements (HDF5 C libraries installed, netCDF-4 C Library install,
 etc). Please see <http://unidata.github.io/netcdf4-python/netCDF4/index.html>
 for a complete list of dependencies for Python NetCDF4 as well as install
 instructions.
 
-
-1. Git clone this repository
+1. Clone this repository
 ```
-> git clone git@github.com:MiCurry/MPAS-Limited-Area.git
-```
-
-2. Install the `limited-area` program with pip. Use `--user` if necessary
-```
-> pip install . --user
+> git clone https://github.com/MiCurry/MPAS-Limited-Area.git
 ```
 
-3. If the script is installed to a user installation location that is not in
-your path, find it and then add it to your path.
+2. Make the file `limited-area` runnable: 
 ```
-> pip show MPAS-Limited-Area
-Name: MPAS-Limited-Area
-Version: 0.1
-Summary: Python application for creating limited area MPAS meshes
-Home-page: UNKNOWN
-Author: UNKNOWN
-Author-email: UNKNOWN
-License: UNKNOWN
-Location: /users/home/mcurry/.local/lib/python3.6/site-packages
-Requires: numpy, scipy, netcdf4
-Required-by:
+> chmod 750 limited-area
 ```
 
-The location of the script is within ~/.local/bin/, so we need to add that to
-our path:
+Now add this directory to your `PATH` environment variable
+
 ```
-setenv PATH ${PATH}:/users/home/mcurry/.local/bin/
+# csh shells
+> setenv PATH ${PATH}:/path/to/MPAS-Limited-Area
 ```
 
-Run `rehash` if necessary. Then you should be good!
+```
+# Bash shells
+> export PATH=${PATH}:/path/to/MPAS-Limited-Area
+```
 
-4. Then test it out by running `limited-area`
+3. Test the `limited-area` is on your path and is runnable by running the
+`limited-area`:
 
+```
+> limited-area
+```
+
+If it runs successfully you should get a small help message:
+```
+usage: limited-area [-h] [-o OUTPUT] [-a ALGORITHM] [-v VERBOSE]
+                    points grid [grid ...]
+                    limited-area: error: the following arguments are required:
+                    points, grid
+```
 
 # Running<a name="Running"/>
 
@@ -82,5 +78,5 @@ limited-area [options] points grid
 ```
 
 Where `points` is a points specification file, and where `grid` is a global
-MPAS NetCDF grid file.
-
+MPAS NetCDF grid file. You'll find example points file in the points-example
+directory within the docs directory of this repository.
