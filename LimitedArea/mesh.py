@@ -104,13 +104,19 @@ class MeshHandler:
                     if (iDistance < nearest_distance):
                         nearest_cell = iCell
                         nearest_distance = iDistance
+    
+        if self._DEBUG_ > 5:
+            print("DEBUG: nearest_cell latLon: ", nearest_cell,
+                                                  latCells[nearest_cell],
+                                                  lonCells[nearest_cell])
+            print("DEBUG: Nearest Cell: ", nearest_cell)
 
-        print("DEBUG: nearest_cell latLon: ", nearest_cell,
-                                              latCells[nearest_cell],
-                                              lonCells[nearest_cell])
-
-        print("DEBUG: Nearest Cell: ", nearest_cell)
         return nearest_cell
+
+
+        def reindex(self, *args, **kwargs):
+            pass
+
 
 
 def convert_lx(lat, lon, radius):

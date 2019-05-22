@@ -65,8 +65,6 @@ class LimitedArea():
         # and see that is is specified correctly!
         if os.path.isfile(region):
             self.region_file = region
-            sys.exit(-1)
-
         if regionFormat == 'points':
             self.regionSpec = RegionSpec(method=regionFormat, *args, **kwargs)
             self.regionFormat = 'points'
@@ -97,20 +95,20 @@ class LimitedArea():
         '''
 
         # Call the regionSpec to generate `name, in_point, points`
-        name, in_point, points = self.regionSpec.gen_spec(self.region_file)
+        name, inPoint, points = self.regionSpec.gen_spec(self.region_file)
 
         if self._DEBUG_ > 0:
             print("DEBUG: Region Spec has been generated")
             print("DEBUG: Name: ", name)
-            print("DEBUG: in_point: ", in_point)
+            print("DEBUG: in_point: ", inPoint)
             print("DEBUG: points: ", points)
 
 
         # For each mesh, mark the boundary
         
         for mesh in self.meshes:
-            self.mark_boundry(mesh, in_point, points)
-            self.flood_fill(mesh, in_point, boundary)
+            boundaryCells, inCell = self.mark_boundry(mesh, inPoint, points)
+            # self.flood_fill(mesh, in_point, boundary)
     
 
     def gen_output_filename(self, mesh, points):
@@ -125,12 +123,14 @@ class LimitedArea():
     
     ''' Custom Algorithms '''
 
-    def follow_the_line(self, mesh, in_point, points, *args, **kwargs):
+    def follow_the_line(self, mesh, inPoint, points, *args, **kwargs):
         ''' Mark the nearest cell to each of the cords in points
         as a boundary cell.
         '''
 
-        boundry_cells = []
+        print("DEBUG: Follow the line: ", self._DEBUG_)
+
+        boundaryCells = []
         nCells = mesh.mesh.dimensions['nCells']
         latCell = mesh.mesh.variables['latCell'][:]
         lonCell = mesh.mesh.variables['lonCell'][:]
@@ -138,16 +138,16 @@ class LimitedArea():
 
         # Find the nearest cells to the list of given boundary points
         for i in range(0, len(points), 2):
-            boundry_cells.append(mesh.nearest_cell(points[i],
+            boundaryCells.append(mesh.nearest_cell(points[i],
                                                    points[i+1]))
 
         # Find the nearest cell to the inside point
-        inside_point = mesh.nearest_cell(in_point[0], 
-                                         in_point[1])
+        inCell = mesh.nearest_cell(inPoint[0], 
+                                         inPoint[1])
 
         if self._DEBUG_ > 0:
-            print("DEBUG: Boundary Cells: ", boundry_cells)
-            print("DEBUG: Inside point: ", inside_point)
+            print("DEBUG: Boundary Cells: ", boundaryCells)
+            print("DEBUG: Inside point: ", inCell)
 
 
         # Create the bdyMask fields
@@ -159,15 +159,15 @@ class LimitedArea():
         
 
         # TODO: Test this with the enumerate Built-in function
-        for i in range(len(boundry_cells)):
-            source_cell = boundry_cells[i]
-            target_cell = boundry_cells[i % len(boundry_cells)]
+        for i in range(len(boundaryCells)):
+            sourceCell = boundaryCells[i]
+            targetCell = boundaryCells[i % len(boundaryCells)]
 
-            xs, ys, zs = convert_lx(latCell[source_cell], 
-                                    lonCell[source_cell], 
+            xs, ys, zs = convert_lx(latCell[sourceCell], 
+                                    lonCell[sourceCell], 
                                     sphere_radius)
-            xt, yt, zt = convert_lx(latCell[target_cell],
-                                    lonCell[target_cell],
+            xt, yt, zt = convert_lx(latCell[targetCell],
+                                    lonCell[targetCell],
                                     sphere_radius)
         
             if self._DEBUG_ > 0:
@@ -177,9 +177,12 @@ class LimitedArea():
             cross = np.cross([xs, ys, zs], [xt, yt, zt])
             cross = cross / np.linalg.norm(cross) # Unit Vector
 
+
+        return boundaryCells, inCell
+
             
-    def greedy(self, mesh, in_point, points, *args, **kwargs):
+    def greedy(self, mesh, inPoint, points, *args, **kwargs):
         pass
 
-    def dijsktra(self, mesh, in_point, points, *args, **kwargs):
+    def dijsktra(self, mesh, inPoint, points, *args, **kwargs):
         pass

@@ -68,7 +68,7 @@ regional_area = LimitedArea(args.grid,
 regional_area.gen_region()
 
 
-if DEBUG_VALUE > 0:
+if DEBUG > 0:
     print("DEBUG: Limited Area Creation Finished")
 
 
