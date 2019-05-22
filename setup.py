@@ -7,4 +7,5 @@ setup(name='MPAS-Limited-Area',
        description = 'Python application for creating limited area MPAS meshes',
        packages = ['LimitedArea'],
        scripts = ['LimitedArea/bin/limited-area'],
+       install_requires = ['numpy', 'scipy', 'netcdf4']
       )

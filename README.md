@@ -37,25 +37,40 @@ instructions.
 
 1. Git clone this repository
 ```
-git clone git@github.com:MiCurry/MPAS-Limited-Area.git
+> git clone git@github.com:MiCurry/MPAS-Limited-Area.git
 ```
 
-2. Install the limited-area script to a location of your choosing using the
-following command and specifying the location with the `--home=<dir>` option.
+2. Install the `limited-area` program with pip. Use `--user` if necessary
 ```
-python setup.pt install --home=/path/to/install/dir
-```
-
-3. If the location of the installation is not in your path, then add it to your
-path:
-```
-export PATH=${PATH}:/path/to/install/dir
+> pip install . --user
 ```
 
-4. Test to see if the installation ran correctly by running:
+3. If the script is installed to a user installation location that is not in
+your path, find it and then add it to your path.
 ```
-limited-area
+> pip show MPAS-Limited-Area
+Name: MPAS-Limited-Area
+Version: 0.1
+Summary: Python application for creating limited area MPAS meshes
+Home-page: UNKNOWN
+Author: UNKNOWN
+Author-email: UNKNOWN
+License: UNKNOWN
+Location: /users/home/mcurry/.local/lib/python3.6/site-packages
+Requires: numpy, scipy, netcdf4
+Required-by:
 ```
+
+The location of the script is within ~/.local/bin/, so we need to add that to
+our path:
+```
+setenv PATH ${PATH}:/users/home/mcurry/.local/bin/
+```
+
+Run `rehash` if necessary. Then you should be good!
+
+4. Then test it out by running `limited-area`
+
 
 # Running<a name="Running"/>
 
