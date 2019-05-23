@@ -81,14 +81,15 @@ class RegionSpec:
             return self.name, self.in_point, self.points
 
         if self.method == 'POINTS':
-            # Do Points stuff here and return
             if self.type == 'custom':
                 self.points = np.array(self.points)
 
+                # Convert the points to radians and set them to be between
+                # Lon: 0 to 2*Pi and Lat: -pi to +pi
                 for cord in range(0, len(self.points), 2):
-                     (self.points[cord], self.points[cord+1]) = normalize_cords(
-                                                                self.points[cord], 
-                                                                self.points[cord+1])
+                     self.points[cord], self.points[cord+1] = normalize_cords(
+                                                              self.points[cord], 
+                                                              self.points[cord+1])
 
                 self.in_point[0], self.in_point[1] = normalize_cords(
                                                         self.in_point[0],

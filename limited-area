@@ -59,13 +59,15 @@ if DEBUG > 1 :
     print("DEBUG: Algorithm: ", args.algorithm, '\n')
 
 
+kwargs = {'output' : args.output,
+          'algorithm' : args.algorithm,
+          'DEBUG' : DEBUG}
+
 regional_area = LimitedArea(args.grid, 
                             args.points, 
-                            output=args.output,
-                            algorithm=args.algorithm,
-                            DEBUG=DEBUG)
+                            **kwargs)
 
-regional_area.gen_region()
+regional_area.gen_region(**kwargs)
 
 
 if DEBUG > 0:

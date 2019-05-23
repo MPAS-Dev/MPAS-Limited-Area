@@ -2,8 +2,9 @@
 from __future__ import absolute_import, division, print_function
 import sys
 import os
-from netCDF4 import Dataset
+
 import numpy as np
+from netCDF4 import Dataset
 
 '''
 
@@ -24,17 +25,28 @@ vertex_map
 '''
 
 class MeshHandler:
-    def __init__(self, fname, *args, **kwargs):
+    def __init__(self, fname, mode, *args, **kwargs):
         self._DEBUG_ = kwargs.get('DEBUG', 0)
+        self.fname = fname
 
-        if self.check_file(fname):
+        if mode == 'r':
+            if self.check_file(fname):
+                return
+            else:
+                sys.exit(-1)
+        elif mode == 'w':
+            self.create_file(fname, mode)
+
+    def create_file(self, fname, mode):
+        try:
+            self.mesh = Dataset(fname, mode)
             return
-        else:
+        except:
+            print("ERROR: There was a problem creating the file ", fname)
             sys.exit(-1)
 
     def check_file(self, fname):
         if os.path.isfile(fname):
-            #ncfile = Dataset(fname, 'r')
             try:
                 self.mesh = Dataset(fname, 'r')
                 if self._DEBUG_ > 1:
@@ -114,12 +126,62 @@ class MeshHandler:
         return nearest_cell
 
 
-        def reindex(self, *args, **kwargs):
-            pass
+    def subset_fields(self, regionalFname, bdyMaskCell, *args, **kwargs):
+        ''' From the current mesh, subset all the fields into a new mesh,
+        regionalFname  '''
+
+        # Don't pass on DEBUG to the regional mess - tone down output
+        kwargs.pop('DEBUG')
+
+        indexingFields = [ 'indexToCellID', 'indexToEdgeID', 'indexToVertexID',
+                           'cellsOnEdge', 'nEdgesOnCell', 'nEdgesOnEdge',
+                           'edgesOnCell', 'edgesOnEdge', 'weightsOnEdge',
+                           'cellsOnCells', 'verticesOnCell', 'verticesOnEdge',
+                           'edgesOnVertex', 'cellsOnVertex' ]
+
+        nCells = self.mesh.dimensions['nCells'].size
+        indexToCellIDs = self.mesh.variables['indexToCellID']
+        bdyIndexToCellIDs = indexToCellIDs[np.where(bdyMaskCell != 0)]
+
+        region = MeshHandler(regionalFname, 'w', *args, **kwargs)
+
+        ''' Dimensions '''
+        for dim in self.mesh.dimensions:
+            if dim == 'nCells':
+                region.mesh.createDimension(dim, len(bdyIndexToCellIDs))
+            if dim == 'nEdges':
+                pass
+            if dim == 'nVertices':
+                pass
+        
+        ''' Variables '''
+        for var in self.mesh.variables:     # Create Variables
+            print(var, self.mesh.variables[var].dimensions)
+            region.mesh.createVariable(var, 
+                                        self.mesh.variables[var].dtype,
+                                        self.mesh.variables[var].dimensions)
 
 
+        for var in self.mesh.vaariables: # Subset and write variables
+            if var in indexingFields:
+                print("We need to reindex the field: ", var)
+            else:
+                print("We can simply subset the field ", var)
 
-def convert_lx(lat, lon, radius):
+            if 'nCells' in self.mesh.variables[var].dimensions:
+                region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToCellID]
+
+
+        return region
+
+
+def copy_mesh(inMesh):
+    ''' Copy `inMesh` and then return a new mesh class that points to the copy
+    '''
+    pass
+
+
+def latlon_to_xyz(lat, lon, radius):
     ''' Calculate the x, y, z cordinations of lat, lon on the sphere that has
     radius, radius.
     lat -
@@ -131,7 +193,7 @@ def convert_lx(lat, lon, radius):
     x = radius * np.cos(lon)
     y = radius * np.sin(lon) * np.cos(lat)
 
-    return x, y, z
+    return np.array([x, y, z])
 
 
 def sphere_distance(lat1, lon1, lat2, lon2, radius, **kwargs):

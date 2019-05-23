@@ -5,20 +5,16 @@ import sys
 
 import numpy as np
 
-from LimitedArea.mesh import MeshHandler, convert_lx
+from LimitedArea.mesh import MeshHandler
+from LimitedArea.mesh import latlon_to_xyz
+from LimitedArea.mesh import sphere_distance
 from LimitedArea.regionSpec import RegionSpec
 
 class LimitedArea():
     ''' These could possible go into a settings.py file ?? '''
-    BOUNDARY1 = 1
-    BOUNDARY2 = 2
-    BOUNDARY3 = 3
-    BOUNDARY4 = 4
-    BOUNDARY5 = 5
-    BOUNDARY6 = 6
-    BOUNDARY7 = 7
-    INSIDE = 0
-    UNMARKED = -1
+    num_boundary_layers = 7
+    INSIDE = 1
+    UNMARKED = 0
 
     def __init__(self, 
                  mesh_files, # Mesh Filename
@@ -47,13 +43,20 @@ class LimitedArea():
         '''
         self.meshes = []
 
+        ''' Named arguments '''
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.algorithm = kwargs.get('algorithm', 'follow')
+        self.boundary = kwargs.get('markNeighbors', 'search')
+        self.output = kwargs.get('output', "")
 
-        # Check to see that all of the meshes exists and that they are netcdfs
+        if self.output is None:
+            self.output = ''
+        
+        ''' Check to see that all of the meshes exists and that they are
+        netcdfs ''' 
         for mesh in mesh_files:
             if os.path.isfile(mesh):
-                self.meshes.append(MeshHandler(mesh, *args, **kwargs))
+                self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
 
                 if self._DEBUG_ > 0:
                     print("DEBUG: ", mesh, " is a valid NetCDF File\n")
@@ -61,8 +64,8 @@ class LimitedArea():
                 print("ERROR: Mesh file was not found", mesh)
                 sys.exit(-1)
 
-        # Check to see the points file exists and if it exists, then parse it
-        # and see that is is specified correctly!
+        ''' Check to see the points file exists and if it exists, then parse it
+        and see that is is specified correctly! '''
         if os.path.isfile(region):
             self.region_file = region
         if regionFormat == 'points':
@@ -75,25 +78,25 @@ class LimitedArea():
             raise NotImplementedError("REGION SPEC IS NOT IMPLMENTED "
                                       "- IMPEMTED IT!")
 
+        ''' Choose the algorithm to choose boundary points '''
         if self.algorithm == 'follow':
             self.mark_boundry = self.follow_the_line
-        elif self.algorithm == 'dijkstra':
-            self.mark_boundry = self.dijkstra
-        elif self.algorithm == 'greedy':
-            self.mark_boundry = self.greedy 
+
+        ''' Choose the algorithm to mark relaxation region '''
+        if self.boundary == None:
+            # Possibly faster for larger regions
+            self.mark_neighbors = self._mark_neighbors
+        elif self.boundary == 'search':
+            # Possibly faster for smaller regions
+            self.mark_neighbors = self._mark_neighbors_search
+        
+
+        
 
     def gen_region(self, *args, **kwargs):
         ''' gen_region
 
-        Flow Chart
-
-        1. Call the region spec to generate `name, in_point, points`. Do this
-           first. We don't want to open any of the mesh variables (which might be
-           gigantic), so we can avoid unncesseary processing if the regionSpec
-           encounters and error.
-        
         '''
-
         # Call the regionSpec to generate `name, in_point, points`
         name, inPoint, points = self.regionSpec.gen_spec(self.region_file)
 
@@ -105,35 +108,112 @@ class LimitedArea():
 
 
         # For each mesh, mark the boundary
-        
         for mesh in self.meshes:
-            boundaryCells, inCell = self.mark_boundry(mesh, inPoint, points)
-            # self.flood_fill(mesh, in_point, boundary)
-    
+            # Mark the boundary cells
+            bdyMaskCell, inCell = self.mark_boundry(mesh, inPoint, points)
 
-    def gen_output_filename(self, mesh, points):
-        pass
+            # Mark the edges
+            
+            # Mark the verticies
+
+            # Flood fill from the inside point 
+            self.flood_fill(mesh, inCell, bdyMaskCell)
+
+            # Mark the neighbors
+            for layer in range(1, self.num_boundary_layers + 1):
+                if self._DEBUG_ > 3:
+                    print("Debug: Layer: ", layer)
+
+                self.mark_neighbors(mesh, layer, bdyMaskCell, inCell=inCell)
+    
+            if self._DEBUG_ > 4:
+                print("DEBUG: bdyMaskCell: ")
+                for cells in bdyMaskCell:
+                    print("DEBUG: ", cells)
+
+            # Subset the grid into a new region:
+            regionFname = self.create_regional_fname(name, mesh)
+         #   regionalMesh = mesh.subset_fields(regionFname, 
+         #                                     bdyMaskCell,
+         #                                     *args,
+         #                                     **kwargs)
+            
 
 
     ''''''''''''''''''''''''''''''
     ''''''''''''''''''''''''''''''
 
-    def flood_fill(self, mesh, points):
-        pass
-    
-    ''' Custom Algorithms '''
+    def create_regional_fname(self, name, mesh):
+        nCells = mesh.mesh.dimensions['nCells'].size
+        return os.path.join(self.output, name+'.'+str(nCells)+'.nc')
 
+
+    # Mark_neighbors_search - Faster for smaller regions ??
+    def _mark_neighbors_search(self, mesh, nType, bdyMaskCell, *args, **kwargs):
+        inCell = kwargs.get('inCell', None)
+        if inCell == None:
+            print("ERROR: In cell not found within _mark_neighbors_search")
+
+        nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
+        cellsOnCell = mesh.mesh.variables['cellsOnCell'][:,:]
+
+        stack = [inCell]
+        while len(stack) > 0:
+            iCell = stack.pop()
+            for i in range(nEdgesOnCell[iCell]):
+                j = cellsOnCell[iCell, i] - 1
+                if nType > bdyMaskCell[j] >= self.INSIDE:
+                    bdyMaskCell[j] = -bdyMaskCell[j]
+                    stack.append(j)
+                elif bdyMaskCell[j] == 0:
+                    bdyMaskCell[j] = nType
+
+        bdyMaskCell[:] = abs(bdyMaskCell[:])
+
+
+    # mark_neighbors - Faster for larger regions ??
+    def _mark_neighbors(self, mesh, nType, bdyMaskCell, *args, **kwargs):
+        nCells = len(bdyMaskCell)
+        nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
+        cellsOnCell = mesh.mesh.variables['cellsOnCell'][:,:]
+
+        for iCell in range(nCells):
+            if bdyMaskCell[iCell] == self.UNMARKED:
+                for i in range(nEdgesOnCell[iCell]):
+                    v = cellsOnCell[iCell, i] - 1
+                    if bdyMaskCell[v] == 0:
+                        bdyMaskCell[v] == nType
+
+
+    def flood_fill(self, mesh, inCell, bdyMaskCell):
+        nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
+        cellsOnCell = mesh.mesh.variables['cellsOnCell'][:,:]
+
+        stack = [inCell]
+        while len(stack) > 0:
+            iCell = stack.pop()
+            for i in range(nEdgesOnCell[iCell]):
+                j = cellsOnCell[iCell, i] - 1
+                if bdyMaskCell[j] == self.UNMARKED:
+                    bdyMaskCell[j] = 1
+                    stack.append(j)
+
+    
     def follow_the_line(self, mesh, inPoint, points, *args, **kwargs):
         ''' Mark the nearest cell to each of the cords in points
         as a boundary cell.
         '''
 
-        print("DEBUG: Follow the line: ", self._DEBUG_)
+        if self._DEBUG_ > 0: 
+            print("DEBUG: Follow the line: ", self._DEBUG_)
 
         boundaryCells = []
-        nCells = mesh.mesh.dimensions['nCells']
+        nCells = mesh.mesh.dimensions['nCells'].size
         latCell = mesh.mesh.variables['latCell'][:]
         lonCell = mesh.mesh.variables['lonCell'][:]
+        cellsOnCell = mesh.mesh.variables['cellsOnCell'][:,:]
+        maxEdges = mesh.mesh.dimensions['maxEdges'].size
+        nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
         sphere_radius = mesh.mesh.sphere_radius
 
         # Find the nearest cells to the list of given boundary points
@@ -142,47 +222,77 @@ class LimitedArea():
                                                    points[i+1]))
 
         # Find the nearest cell to the inside point
-        inCell = mesh.nearest_cell(inPoint[0], 
-                                         inPoint[1])
+        inCell = mesh.nearest_cell(inPoint[0], inPoint[1])
 
         if self._DEBUG_ > 0:
             print("DEBUG: Boundary Cells: ", boundaryCells)
             print("DEBUG: Inside point: ", inCell)
+            print("DEBUG: Sphere Radius: ", sphere_radius)
 
 
         # Create the bdyMask fields
         # TODO: Update this with dtype,
         # TODO: Update this with order, C or F order in memory?
-        bdyMaskCell = np.full(len(nCells), self.UNMARKED)
-        bdyMaskEdge = np.full(len(nCells), self.UNMARKED)
-        bdyMaskVertex = np.full(len(nCells), self.UNMARKED)
-        
+        bdyMaskCell = np.full(nCells, self.UNMARKED)
 
-        # TODO: Test this with the enumerate Built-in function
+        # TODO: 
+        # bdyMaskEdge = np.full(nCells, self.UNMARKED)
+        # bdyMaskVertex = np.full(nCells, self.UNMARKED)
+        
+        # Mark the boundary cells that were given as input
+        for bCells in boundaryCells:
+            bdyMaskCell[bCells] = self.INSIDE
+
         for i in range(len(boundaryCells)):
             sourceCell = boundaryCells[i]
-            targetCell = boundaryCells[i % len(boundaryCells)]
+            targetCell = boundaryCells[(i + 1) % len(boundaryCells)]
 
-            xs, ys, zs = convert_lx(latCell[sourceCell], 
-                                    lonCell[sourceCell], 
-                                    sphere_radius)
-            xt, yt, zt = convert_lx(latCell[targetCell],
-                                    lonCell[targetCell],
-                                    sphere_radius)
-        
+
             if self._DEBUG_ > 0:
-                print("DEBUG: Source Cell x, y, z: ", xs, ys, zs)
-                print("DEBUG: Target Cell x, y, z: ", xt, yt, zt)
-
-            cross = np.cross([xs, ys, zs], [xt, yt, zt])
-            cross = cross / np.linalg.norm(cross) # Unit Vector
-
-
-        return boundaryCells, inCell
-
+                print("DEBUG: sourceCell: ", sourceCell)
+                print("DEBUG: targetCell: ", targetCell)
             
-    def greedy(self, mesh, inPoint, points, *args, **kwargs):
-        pass
 
-    def dijsktra(self, mesh, inPoint, points, *args, **kwargs):
-        pass
+            pta = latlon_to_xyz(latCell[sourceCell], 
+                                lonCell[sourceCell], 
+                                sphere_radius)
+            ptb = latlon_to_xyz(latCell[targetCell],
+                                lonCell[targetCell],
+                                sphere_radius)
+        
+            pta = np.cross(pta, ptb)
+            temp = np.linalg.norm(pta)
+            cross = pta / temp
+            iCell = sourceCell
+            while iCell != targetCell:
+                print('iCell: ', iCell)
+                bdyMaskCell[iCell] = self.INSIDE
+                minangle = np.Infinity
+                mindist = sphere_distance(latCell[iCell], 
+                                          lonCell[iCell],
+                                          latCell[targetCell],
+                                          lonCell[targetCell],
+                                          sphere_radius)
+                for j in range(nEdgesOnCell[iCell]):
+                    v = cellsOnCell[iCell,j] - 1
+                    dist = sphere_distance(latCell[v],
+                                           lonCell[v],
+                                           latCell[targetCell],
+                                           lonCell[targetCell],
+                                           sphere_radius)
+                    if dist > mindist:
+                        continue
+                    pt = latlon_to_xyz(latCell[v], lonCell[v], sphere_radius)
+                    angle = np.dot(pta, pt)
+                    angle = abs(0.5 * np.pi - np.arccos(angle))
+                    if angle < minangle:
+                        minangle = angle
+                        k = v
+                iCell = k
+
+        if self._DEBUG_ > 2:
+            print("DEBUG: bdyMaskCells: ", bdyMaskCell)
+
+        return bdyMaskCell, inCell
+
+
