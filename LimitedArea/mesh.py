@@ -6,23 +6,6 @@ import os
 import numpy as np
 from netCDF4 import Dataset
 
-'''
-
-New Variables:
---------------
-bdyMaskCell
-bdyMaskEdge
-bdyMaskVertex
-
-parentCellID
-parentEdgeID
-parentVertexID
-
-cell_map
-edge_map
-vertex_map
-
-'''
 
 class MeshHandler:
     def __init__(self, fname, mode, *args, **kwargs):
@@ -126,54 +109,140 @@ class MeshHandler:
         return nearest_cell
 
 
-    def subset_fields(self, regionalFname, bdyMaskCell, *args, **kwargs):
+    def subset_fields(self, 
+                      regionalFname, 
+                      bdyMaskCell,
+                      bdyMaskEdge,
+                      bdyMaskVertex,
+                      *args, 
+                      **kwargs):
         ''' From the current mesh, subset all the fields into a new mesh,
         regionalFname  '''
 
         # Don't pass on DEBUG to the regional mess - tone down output
         kwargs.pop('DEBUG')
 
-        indexingFields = [ 'indexToCellID', 'indexToEdgeID', 'indexToVertexID',
-                           'cellsOnEdge', 'nEdgesOnCell', 'nEdgesOnEdge',
-                           'edgesOnCell', 'edgesOnEdge', 'weightsOnEdge',
-                           'cellsOnCells', 'verticesOnCell', 'verticesOnEdge',
-                           'edgesOnVertex', 'cellsOnVertex' ]
+        indexingFields = [ 'indexToCellID', 'indexToEdgeID', 'indexToVertexID' ]
+                            
 
         nCells = self.mesh.dimensions['nCells'].size
         indexToCellIDs = self.mesh.variables['indexToCellID']
-        bdyIndexToCellIDs = indexToCellIDs[np.where(bdyMaskCell != 0)]
+        indexToEdgeIDs = self.mesh.variables['indexToEdgeID']
+        indexToVertexIDs = self.mesh.variables['indexToVertexID']
 
+
+       # print("bdyMaskCell: ", bdyMaskCell, len(bdyMaskCell))
+       # input('-')
+       # print("bdyMaskEdge: ", bdyMaskVertex, len(bdyMaskEdge))
+       # input('-')
+       # print("bdyMaskVertex: ", bdyMaskVertex, len(bdyMaskVertex))
+       # input('-')
+
+        bdyIndexToCellIDs = indexToCellIDs[np.where(bdyMaskCell != 0)]
+        bdyIndexToEdgeIDs = indexToEdgeIDs[np.where(bdyMaskEdge != 0)]
+        bdyIndexToVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != 0)]
+
+       # print("bdyIndexToCellIDs: ", bdyIndexToCellIDs, " size: ", len(bdyIndexToCellIDs))
+       # input("-")
+       # print("bdyIndexToEdgeIDs: ", bdyIndexToEdgeIDs, " size: ", len(bdyIndexToEdgeIDs))
+       # input("-")
+       # print("bdyIndexToVertexIDs: ", bdyIndexToVertexIDs, " size: ", len(bdyIndexToVertexIDs))
+       # input("-")
+
+
+        # Create a new grid
         region = MeshHandler(regionalFname, 'w', *args, **kwargs)
 
         ''' Dimensions '''
         for dim in self.mesh.dimensions:
             if dim == 'nCells':
                 region.mesh.createDimension(dim, len(bdyIndexToCellIDs))
-            if dim == 'nEdges':
-                pass
-            if dim == 'nVertices':
-                pass
+            elif dim == 'nEdges':
+                region.mesh.createDimension(dim, len(bdyIndexToEdgeIDs))
+            elif dim == 'nVertices':
+                region.mesh.createDimension(dim, len(bdyIndexToVertexIDs))
+            else:
+                region.mesh.createDimension(dim,
+                                            self.mesh.dimensions[dim].size)
         
         ''' Variables '''
-        for var in self.mesh.variables:     # Create Variables
-            print(var, self.mesh.variables[var].dimensions)
-            region.mesh.createVariable(var, 
-                                        self.mesh.variables[var].dtype,
-                                        self.mesh.variables[var].dimensions)
+        # Create variables
+        for var in self.mesh.variables:
+            region.mesh.createVariable(var, self.mesh.variables[var].dtype,
+                                            self.mesh.variables[var].dimensions)
 
 
-        for var in self.mesh.vaariables: # Subset and write variables
-            if var in indexingFields:
-                print("We need to reindex the field: ", var)
-            else:
-                print("We can simply subset the field ", var)
+        for var in self.mesh.variables: # Subset and write variables
+            print("Copying variable: ", var, end=' ', flush=True)
 
-            if 'nCells' in self.mesh.variables[var].dimensions:
-                region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToCellID]
+            # Cells
+            if var == 'edgesOnCell':
+                region.mesh.variables[var][:] = \
+                                     reindex_field(self.mesh.variables[var][bdyIndexToCellIDs],
+                                                              bdyIndexToEdgeIDs)
+            elif var == 'verticesOnCell':
+                region.mesh.variables[var][:] = \
+                                    reindex_field(self.mesh.variables[var][bdyIndexToCellIDs],
+                                                  bdyIndexToVertexIDs)
+            elif var == 'cellsOnCell':
+                region.mesh.variables[var][:] = \
+                                    reindex_field(self.mesh.variables[var][bdyIndexToCellIDs],
+                                                  bdyIndexToCellIDs)
+            # Vertices
+            elif var == 'edgesOnVertex':
+                region.mesh.variables[var][:] = \
+                                    reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs],
+                                                  bdyIndexToEdgeIDs)
+            elif var == 'cellsOnVertex':
+                region.mesh.variables[var][:] = \
+                                    reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs],
+                                                  bdyIndexToCellIDs)
+            # Edges
+            elif var == 'verticesOnEdge':
+                region.mesh.variables[var][:] = \
+                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs],
+                                                  bdyIndexToVertexIDs)
+            elif var == 'cellsOnEdge':
+                region.mesh.variables[var][:] = \
+                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs],
+                                                  bdyIndexToCellIDs)
+            elif var == 'edgesOnEdge':
+                region.mesh.variables[var][:] = \
+                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs],
+                                                  bdyIndexToEdgeIDs)
+                
 
+            elif 'nCells' in self.mesh.variables[var].dimensions:
+                print(" ")
+                if var in indexingFields:
+                    region.mesh.variables[var][:] = \
+                                        reindex_field(self.mesh.variables[var][bdyIndexToCellIDs],
+                                                      bdyIndexToCellIDs)
+                else:
+                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToCellIDs]
+            elif 'nEdges' in self.mesh.variables[var].dimensions:
+                print(" ")
+                if var in indexingFields:
+                    region.mesh.variables[var][:] = \
+                                        reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs],
+                                                      bdyIndexToEdgeIDs)
+                else:
+                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToEdgeIDs]
+            elif 'nVertices' in self.mesh.variables[var].dimensions:
+                print(" ")
+                if var in indexingFields:
+                    region.mesh.variables[var][:] = \
+                                        reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs],
+                                                      bdyIndexToVertexIDs)
+                else:
+                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToVertexIDs]
 
         return region
 
+
+def reindex_field(field, index):
+    newField = np.searchsorted(index, field, side='right')
+    return newField
 
 def copy_mesh(inMesh):
     ''' Copy `inMesh` and then return a new mesh class that points to the copy
