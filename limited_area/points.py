@@ -2,12 +2,11 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 
-''' Parse the points file, and output a representation that can be passed back
-that can be used to.
+""" Parse the points file, and output a representation that can be passed back
+that can be used to. """
 
-'''
 
-''' File Examples:
+""" File Examples:
 
 # Circle
 ```
@@ -55,9 +54,10 @@ Lat3, Lon3
 Lat4, Lon4
 ...
 LatN, LonN
-'''
+"""
 
 def PointsParser(self, file, *args, **kwargs):
+    """ """
     self.points = []
 
     # Kwargs

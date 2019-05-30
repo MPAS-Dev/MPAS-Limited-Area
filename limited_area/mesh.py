@@ -8,7 +8,9 @@ from netCDF4 import Dataset
 
 
 class MeshHandler:
+    """ """
     def __init__(self, fname, mode, *args, **kwargs):
+        """ """
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.fname = fname
 
@@ -21,6 +23,7 @@ class MeshHandler:
             self.create_file(fname, mode)
 
     def create_file(self, fname, mode):
+        """ """
         try:
             self.mesh = Dataset(fname, mode)
             return
@@ -29,6 +32,7 @@ class MeshHandler:
             sys.exit(-1)
 
     def check_file(self, fname):
+        """ """
         if os.path.isfile(fname):
             try:
                 self.mesh = Dataset(fname, 'r')
@@ -47,22 +51,21 @@ class MeshHandler:
             return False
 
     def print_all_dimensions(self):
+        """ """
         print(self.mesh.dimensions.keys())
 
 
     def print_all_variables(self):
+        """ """
         print(self.mesh.variables.keys())
 
 
     def nearest_cell(self, lat, lon):
-        ''' nearest_cell
-
-        Find the nearest cell to lat and lon
+        """ Find the nearest cell to lat and lon
 
         lat - Latitude - In degrees - -90:90
         lon - Longitude  - In degrees - -180:180
-
-        '''
+        """
         # We will start at cell 0
         nCells = self.mesh.dimensions['nCells'].size
         latCells = np.array(self.mesh.variables['latCell'])
@@ -118,8 +121,8 @@ class MeshHandler:
                       unmarked,
                       *args, 
                       **kwargs):
-        ''' From the current mesh, subset all the fields into a new mesh,
-        regionalFname  '''
+        """ From the current mesh, subset all the fields into a new mesh,
+        regionalFname """
 
         # Don't pass on DEBUG to the regional mess - tone down output
         kwargs.pop('DEBUG')
@@ -135,11 +138,10 @@ class MeshHandler:
         bdyIndexToEdgeIDs = indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)]
         bdyIndexToVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != unmarked)]
 
-
         # Create a new grid
         region = MeshHandler(regionalFname, 'w', *args, **kwargs)
 
-        ''' Dimensions '''
+        # Dimensions
         for dim in self.mesh.dimensions:
             if dim == 'nCells':
                 region.mesh.createDimension(dim, 
@@ -154,7 +156,7 @@ class MeshHandler:
                 region.mesh.createDimension(dim,
                                             self.mesh.dimensions[dim].size)
         
-        ''' Variables '''
+        # Variables
         # Create variables
         for var in self.mesh.variables:
             region.mesh.createVariable(var, self.mesh.variables[var].dtype,
@@ -248,6 +250,7 @@ class MeshHandler:
 
 
 def reindex_field(field, mmap):
+    """ """
     print(' ... Reindexing Field ... ', field.shape, mmap.shape, end=' ... ', flush=True)
     field = field.flatten()
     for i in range(len(field)):
@@ -258,6 +261,7 @@ def reindex_field(field, mmap):
 
 
 def binary_search(arr, x):
+    """ """
     l = 0
     u = len(arr) - 1
     k = (l + u) // 2
@@ -276,13 +280,13 @@ def binary_search(arr, x):
 
 
 def latlon_to_xyz(lat, lon, radius):
-    ''' Calculate the x, y, z cordinations of lat, lon on the sphere that has
+    """ Calculate the x, y, z cordinations of lat, lon on the sphere that has
     radius, radius.
     lat -
     lon -
     radius -
     TODO: Update this doc
-    '''
+    """
     z = radius * np.sin(lat)
     x = radius * np.cos(lon)
     y = radius * np.sin(lon) * np.cos(lat)
@@ -291,7 +295,7 @@ def latlon_to_xyz(lat, lon, radius):
 
 
 def sphere_distance(lat1, lon1, lat2, lon2, radius, **kwargs):
-    ''' Calculate the sphere distance between point1 and point2. 
+    """ Calculate the sphere distance between point1 and point2. 
 
     lat1 - Float - Radians - -pi:pi
     lon1 - Float - Radians - 0:2*pi
@@ -300,9 +304,7 @@ def sphere_distance(lat1, lon1, lat2, lon2, radius, **kwargs):
     radius - Radius of the earth (or sphere) - Units can be ignored
 
     TODO: Update doc with return value
-    '''
-
-
+    """ 
     return (2 * radius * np.arcsin(
                          np.sqrt(
                          np.sin(0.5 * (lat2 - lat1))**2

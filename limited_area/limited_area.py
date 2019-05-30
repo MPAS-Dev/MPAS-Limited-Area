@@ -11,7 +11,7 @@ from limited_area.mesh import sphere_distance
 from limited_area.region_spec import RegionSpec
 
 class LimitedArea():
-    ''' These could possible go into a settings.py file ?? '''
+    """ These could possible go into a settings.py file ?? """
     num_boundary_layers = 8
     INSIDE = 1
     UNMARKED = 0
@@ -23,7 +23,7 @@ class LimitedArea():
                  algorithm='follow',
                  *args,
                  **kwargs):
-        ''' Init function for Limited Area
+        """ Init function for Limited Area
         Check to see if mesh file exists and it is the correct type. Check to
         see that the region file exist and finally set the regionSpec to the
         requeste regionFormat
@@ -39,10 +39,10 @@ class LimitedArea():
 
         Named Args TODO: Look up the format to do this
         DEBUG_VALUE -
-        '''
+        """ 
         self.meshes = []
 
-        ''' Named arguments '''
+        # Keyword arguments
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.algorithm = kwargs.get('algorithm', 'follow')
         self.boundary = kwargs.get('markNeighbors', 'search')
@@ -51,8 +51,8 @@ class LimitedArea():
         if self.output is None:
             self.output = ''
 
-        ''' Check to see that all of the meshes exists and that they are
-        netcdfs ''' 
+        # Check to see that all of the meshes exists and that they are
+        # netcdfs
         for mesh in mesh_files:
             if os.path.isfile(mesh):
                 self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
@@ -63,8 +63,8 @@ class LimitedArea():
                 print("ERROR: Mesh file was not found", mesh)
                 sys.exit(-1)
 
-        ''' Check to see the points file exists and if it exists, then parse it
-        and see that is is specified correctly! '''
+        # Check to see the points file exists and if it exists, then parse it
+        # and see that is is specified correctly!
         if os.path.isfile(region):
             self.region_file = region
         if regionFormat == 'points':
@@ -77,11 +77,11 @@ class LimitedArea():
             raise NotImplementedError("REGION SPEC IS NOT IMPLMENTED "
                                       "- IMPEMTED IT!")
 
-        ''' Choose the algorithm to choose boundary points '''
+        # Choose the algorithm to choose boundary points
         if self.algorithm == 'follow':
             self.mark_boundry = self.follow_the_line
 
-        ''' Choose the algorithm to mark relaxation region '''
+        # Choose the algorithm to mark relaxation region
         if self.boundary == None:
             # Possibly faster for larger regions
             self.mark_neighbors = self._mark_neighbors
@@ -90,11 +90,10 @@ class LimitedArea():
             self.mark_neighbors = self._mark_neighbors_search
         
         
-
     def gen_region(self, *args, **kwargs):
-        ''' gen_region
-
-        '''
+        """ gen_region - Generate the boundary region of the given region
+         for the given mesh(es).
+        """ 
         # Call the regionSpec to generate `name, in_point, points`
         name, inPoint, points = self.regionSpec.gen_spec(self.region_file)
 
@@ -104,12 +103,10 @@ class LimitedArea():
             print("DEBUG: in_point: ", inPoint)
             print("DEBUG: points: ", points)
 
-
-        # For each mesh, mark the boundary
+        # For each mesh, create a regional mesh and save it
         for mesh in self.meshes:
             print('\n')
             print('Creating a regional mesh of ', mesh.fname)
-
 
             # Mark the boundary cells
             print('Marking boundary cells ...')
@@ -153,24 +150,21 @@ class LimitedArea():
                                               unmarked=self.UNMARKED,
                                               *args,
                                               **kwargs)
-           
             
             print("Created a regional mesh: ", regionFname)
             mesh.mesh.close()
             regionalMesh.mesh.close()
 
 
-    ''''''''''''''''''''''''''''''
-    ''''''''''''''''''''''''''''''
-
     def create_regional_fname(self, name, mesh):
+        """ """
         nCells = mesh.mesh.dimensions['nCells'].size
         return os.path.join(self.output, name+'.'+str(nCells)+'.nc')
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
     def _mark_neighbors_search(self, mesh, nType, bdyMaskCell, *args, **kwargs):
-
+        """ """
         inCell = kwargs.get('inCell', None)
         if inCell == None:
             print("ERROR: In cell not found within _mark_neighbors_search")
@@ -194,7 +188,7 @@ class LimitedArea():
 
     # mark_neighbors - Faster for larger regions ??
     def _mark_neighbors(self, mesh, nType, bdyMaskCell, *args, **kwargs):
-
+        """ """
         nCells = len(bdyMaskCell)
         nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
         cellsOnCell = mesh.mesh.variables['cellsOnCell'][:, :]
@@ -208,6 +202,7 @@ class LimitedArea():
 
 
     def flood_fill(self, mesh, inCell, bdyMaskCell):
+        """ """
         if self._DEBUG_ > 1:
             print("DEBUG: Flood filling with flood_fill!")
         nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
@@ -226,20 +221,22 @@ class LimitedArea():
 
 
     def mark_edges(self, mesh, bdyMaskCell, *args, **kwargs):
+        """ """
         cellsOnEdge = mesh.mesh.variables['cellsOnEdge'][:]
         return bdyMaskCell[cellsOnEdge[:][:] - 1].max(axis=1)
 
 
     def mark_vertices(self, mesh, bdyMaskCell, *args, **kwargs):
+        """ """
         cellsOnVertex = mesh.mesh.variables['cellsOnVertex'][:]
         return bdyMaskCell[cellsOnVertex[:][:] - 1].max(axis=1)
     
 
     # Mark Boundary points
     def follow_the_line(self, mesh, inPoint, points, *args, **kwargs):
-        ''' Mark the nearest cell to each of the cords in points
+        """ Mark the nearest cell to each of the cords in points
         as a boundary cell.
-        '''
+        """
 
         if self._DEBUG_ > 0: 
             print("DEBUG: Marking the boundary points: ")

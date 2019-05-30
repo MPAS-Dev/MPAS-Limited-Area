@@ -9,31 +9,20 @@ from limited_area.shape_reader import ShapeReader
 from limited_area.points import PointsParser
 import numpy as np
 
-'''
-# class region_spec 
-
-```
+"""
 To Region Spec
 ==============
 filename - Path to the file that is to be read 
 file type - the type of the file that it is to be read - How will this be
             specirfied?
-```
 
-
-```
 Back To Limited Area 
 ==================
 filename - Output filename (if desired)
 points array - 2d list of lat lon cords specificying boundry
 in-point - pair of points that inside the boundary
 algorithm choice - if any
-```
-
-
-'''
-
-
+"""
 
 if sys.version_info[0] > 2:
     create_bound_method = types.MethodType
@@ -49,6 +38,7 @@ NOT_IMPLEMENTED_ERROR = "IS NOT IMPLEMENTED - YOU SHOULD IMPLENTED IT!"
 # 2. Lat = -pi/2 to pi/2
 # 3. Lon = 0 to 2*pi
 def normalize_cords(lat, lon):
+    """ """
     lat *= np.pi / 180.0
     lon *= np.pi / 180.0
 
@@ -59,9 +49,10 @@ def normalize_cords(lat, lon):
 
 
 class RegionSpec:
+    """ """
     def __init__(self, method='points', *args, **kwargs):
-
-        # Kwargs
+        """ """
+        # Keyword Args
         self._DEBUG_ = kwargs.get('DEBUG', 0)
 
         if method == 'Points' or method == 'points':
@@ -76,6 +67,7 @@ class RegionSpec:
             raise NotImplementedError("SHAPE READER "+NOT_IMPLEMENTED_ERROR)
 
     def gen_spec(self, file, *args, **kwargs):
+        """ """
         self._gen_spec(file, *args, **kwargs)
 
         if self.method == 'SHAPE':
@@ -107,12 +99,15 @@ class RegionSpec:
 
 
     def circle(self):
+        """ """
         raise NotImplementedError("CIRCLE FUCTION "+NOT_IMPLEMENTED_ERROR)
 
     def square(self):
+        """ """
         raise NotImplementedError("SQAURE FUNCITON "+NOT_IMPLEMENTED_ERROR)
 
     def ellipse(self):
+        """ """
         raise NotImplementedError("ELLIPSE FUNCITON "+NOT_IMPLEMENTED_ERROR)
 
 
