@@ -113,50 +113,38 @@ class LimitedArea():
 
 
             # Mark the boundary cells
+            print('Marking boundary cells ...')
             bdyMaskCell, globalBdyCellsIDs, inCell = self.mark_boundry(mesh, 
                                                                        inPoint, 
                                                                        points)
             # Flood fill from the inside point 
+            print('Filling region ...')
             bdyMaskCell = self.flood_fill(mesh, inCell, bdyMaskCell)
 
             # Mark the neighbors
-            print("Creating boundary laryer:", end=' ', flush=True)
+            print('Creating boundary laryer:', end=' ', flush=True)
             for layer in range(1, self.num_boundary_layers + 1):
                 print(layer, ' ...', end=' ', flush=True)
                 self.mark_neighbors(mesh, layer, bdyMaskCell, inCell=inCell)
-
             print('DONE!')
 
             # Mark the edges
+            print('Markin region edges ...')
             bdyMaskEdge = self.mark_edges(mesh, 
                                           bdyMaskCell, 
                                           *args, 
                                           **kwargs)
 
-            np.set_printoptions(threshold=np.inf)
-
-            if self._DEBUG_ > 5:
-                print("BdyMaskEdge: ", bdyMaskEdge)
-                input('-')
-
             # Mark the verticies
+            print('Markin region verteices...')
             bdyMaskVertex = self.mark_vertices(mesh, 
                                                bdyMaskCell, 
                                                *args,
                                                **kwargs)
 
             
-            if self._DEBUG_ > 5:
-                print("BdyMaskVertex: ", bdyMaskVertex)
-                input('-')
-
-    
-            if self._DEBUG_ > 4:
-                print("DEBUG: bdyMaskCell: ")
-                for cells in bdyMaskCell:
-                    print("DEBUG: ", cells)
-
             # Subset the grid into a new region:
+            print('Subseting mesh fields into the specified region mesh...')
             regionFname = self.create_regional_fname(name, mesh)
             regionalMesh = mesh.subset_fields(regionFname, 
                                               bdyMaskCell,
