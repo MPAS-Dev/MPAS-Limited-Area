@@ -44,8 +44,8 @@ NOT_IMPLEMENTED_ERROR = "IS NOT IMPLEMENTED - YOU SHOULD IMPLENTED IT!"
 
 # Normalize cords to be:
 # 1. In radians
-# 2. Lat = -pi - pi
-# 3. Lon = 0 - 2*pi
+# 2. Lat = -pi/2 to pi/2
+# 3. Lon = 0 to 2*pi
 def normalize_cords(lat, lon):
     lat *= np.pi / 180.0
     lon *= np.pi / 180.0

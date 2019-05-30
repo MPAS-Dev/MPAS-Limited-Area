@@ -12,7 +12,7 @@ from LimitedArea.regionSpec import RegionSpec
 
 class LimitedArea():
     ''' These could possible go into a settings.py file ?? '''
-    num_boundary_layers = 7
+    num_boundary_layers = 8
     INSIDE = 1
     UNMARKED = 0
 
@@ -90,7 +90,6 @@ class LimitedArea():
             # Possibly faster for smaller regions
             self.mark_neighbors = self._mark_neighbors_search
         
-
         
 
     def gen_region(self, *args, **kwargs):
@@ -109,30 +108,36 @@ class LimitedArea():
 
         # For each mesh, mark the boundary
         for mesh in self.meshes:
+            print('\n')
+            print('Creating a regional mesh of ', mesh.fname)
+
+
             # Mark the boundary cells
             bdyMaskCell, globalBdyCellsIDs, inCell = self.mark_boundry(mesh, 
                                                                        inPoint, 
                                                                        points)
             # Flood fill from the inside point 
-            self.flood_fill(mesh, inCell, bdyMaskCell)
-
-            if self._DEBUG_ > 0:
-                print("DEBUG: ", globalBdyCellsIDs)
+            bdyMaskCell = self.flood_fill(mesh, inCell, bdyMaskCell)
 
             # Mark the neighbors
+            print("Creating boundary laryer:", end=' ', flush=True)
             for layer in range(1, self.num_boundary_layers + 1):
-                if self._DEBUG_ > 3:
-                    print("Debug: Layer: ", layer)
-
+                print(layer, ' ...', end=' ', flush=True)
                 self.mark_neighbors(mesh, layer, bdyMaskCell, inCell=inCell)
 
+            print('DONE!')
+
             # Mark the edges
-            bdyMaskEdge = self.mark_edges(mesh, bdyMaskCell, *args, **kwargs)
+            bdyMaskEdge = self.mark_edges(mesh, 
+                                          bdyMaskCell, 
+                                          *args, 
+                                          **kwargs)
+
+            np.set_printoptions(threshold=np.inf)
 
             if self._DEBUG_ > 5:
                 print("BdyMaskEdge: ", bdyMaskEdge)
-                for edge in bdyMaskEdge:
-                    print(edge)
+                input('-')
 
             # Mark the verticies
             bdyMaskVertex = self.mark_vertices(mesh, 
@@ -140,11 +145,10 @@ class LimitedArea():
                                                *args,
                                                **kwargs)
 
+            
             if self._DEBUG_ > 5:
                 print("BdyMaskVertex: ", bdyMaskVertex)
-                for vertex in bdyMaskVertex:
-                    print(vertex)
-
+                input('-')
 
     
             if self._DEBUG_ > 4:
@@ -158,6 +162,8 @@ class LimitedArea():
                                               bdyMaskCell,
                                               bdyMaskEdge,
                                               bdyMaskVertex,
+                                              inside=self.INSIDE,
+                                              unmarked=self.UNMARKED,
                                               *args,
                                               **kwargs)
            
@@ -177,6 +183,7 @@ class LimitedArea():
 
     # Mark_neighbors_search - Faster for smaller regions ??
     def _mark_neighbors_search(self, mesh, nType, bdyMaskCell, *args, **kwargs):
+
         inCell = kwargs.get('inCell', None)
         if inCell == None:
             print("ERROR: In cell not found within _mark_neighbors_search")
@@ -200,6 +207,7 @@ class LimitedArea():
 
     # mark_neighbors - Faster for larger regions ??
     def _mark_neighbors(self, mesh, nType, bdyMaskCell, *args, **kwargs):
+
         nCells = len(bdyMaskCell)
         nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
         cellsOnCell = mesh.mesh.variables['cellsOnCell'][:,:]
@@ -213,6 +221,8 @@ class LimitedArea():
 
 
     def flood_fill(self, mesh, inCell, bdyMaskCell):
+        if self._DEBUG_ > 1:
+            print("DEBUG: Flood filling with flood_fill!")
         nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
         cellsOnCell = mesh.mesh.variables['cellsOnCell'][:,:]
 
@@ -222,17 +232,30 @@ class LimitedArea():
             for i in range(nEdgesOnCell[iCell]):
                 j = cellsOnCell[iCell, i] - 1
                 if bdyMaskCell[j] == self.UNMARKED:
-                    bdyMaskCell[j] = 1
+                    bdyMaskCell[j] = self.INSIDE
                     stack.append(j)
 
+        return bdyMaskCell
+
+
+    def mark_edges(self, mesh, bdyMaskCell, *args, **kwargs):
+        cellsOnEdge = mesh.mesh.variables['cellsOnEdge'][:]
+        return bdyMaskCell[cellsOnEdge[:][:] - 1].max(axis=1)
+
+
+    def mark_vertices(self, mesh, bdyMaskCell, *args, **kwargs):
+        cellsOnVertex = mesh.mesh.variables['cellsOnVertex'][:]
+        return bdyMaskCell[cellsOnVertex[:][:] - 1].max(axis=1)
     
+
+    # Mark Boundary points
     def follow_the_line(self, mesh, inPoint, points, *args, **kwargs):
         ''' Mark the nearest cell to each of the cords in points
         as a boundary cell.
         '''
 
         if self._DEBUG_ > 0: 
-            print("DEBUG: Follow the line: ", self._DEBUG_)
+            print("DEBUG: Marking the boundary points: ")
 
         boundaryCells = []
         nCells = mesh.mesh.dimensions['nCells'].size
@@ -257,16 +280,9 @@ class LimitedArea():
             print("DEBUG: Inside point: ", inCell)
             print("DEBUG: Sphere Radius: ", sphere_radius)
 
-
         # Create the bdyMask fields
-        # TODO: Update this with dtype,
-        # TODO: Update this with order, C or F order in memory?
         bdyMaskCell = np.full(nCells, self.UNMARKED)
 
-        # TODO: 
-        # bdyMaskEdge = np.full(nCells, self.UNMARKED)
-        # bdyMaskVertex = np.full(nCells, self.UNMARKED)
-        
         # Mark the boundary cells that were given as input
         for bCells in boundaryCells:
             bdyMaskCell[bCells] = self.INSIDE
@@ -275,11 +291,6 @@ class LimitedArea():
             sourceCell = boundaryCells[i]
             targetCell = boundaryCells[(i + 1) % len(boundaryCells)]
 
-
-            if self._DEBUG_ > 0:
-                print("DEBUG: sourceCell: ", sourceCell)
-                print("DEBUG: targetCell: ", targetCell)
-            
 
             pta = latlon_to_xyz(latCell[sourceCell], 
                                 lonCell[sourceCell], 
@@ -293,7 +304,6 @@ class LimitedArea():
             cross = pta / temp
             iCell = sourceCell
             while iCell != targetCell:
-                print('iCell: ', iCell)
                 bdyMaskCell[iCell] = self.INSIDE
                 minangle = np.Infinity
                 mindist = sphere_distance(latCell[iCell], 
@@ -318,51 +328,7 @@ class LimitedArea():
                         k = v
                 iCell = k
 
-        if self._DEBUG_ > 2:
-            print("DEBUG: bdyMaskCells: ", bdyMaskCell)
-
         return (bdyMaskCell, 
-                indexToCellID[np.where(bdyMaskCell != 0)], 
+                indexToCellID[np.where(bdyMaskCell != self.UNMARKED)], 
                 inCell)
 
-    def mark_edges(self, mesh, bdyMaskCell, *args, **kwargs):
-
-        nCells = mesh.mesh.dimensions['nCells'].size
-        nEdges = mesh.mesh.dimensions['nEdges'].size
-        cellsOnEdge = mesh.mesh.variables['cellsOnEdge'][:,:]
-        bdyMaskEdge = np.full(nEdges, self.UNMARKED)
-        
-        for edge in range(nEdges):
-            if bdyMaskCell[cellsOnEdge[edge, 0]] == self.UNMARKED:
-                bdyMaskEdge[edge] = bdyMaskCell[cellsOnEdge[edge, 1] - 1]
-            elif bdyMaskEdge[cellsOnEdge[edge, 1]] == self.UNMARKED:
-                bdyMaskEdge[edge] = bdyMaskCell[cellsOnEdge[edge, 0]]
-            else:
-                bdyMaskEdge[edge] = min(bdyMaskCell[cellsOnEdge[edge,0]],
-                                        bdyMaskCell[cellsOnEdge[edge,1]])
-
-        return bdyMaskEdge
-
-
-    def mark_vertices(self, mesh, bdyMaskCell, *args, **kwargs):
-
-        nVertices = mesh.mesh.dimensions['nVertices'].size
-        vertexDegree = mesh.mesh.dimensions['vertexDegree'].size
-        cellsOnVertex = mesh.mesh.variables['cellsOnVertex'][:,:]
-
-        bdyMaskVertex = np.full(nVertices, self.UNMARKED)
-
-        for vertex in range(nVertices):
-            for deg in range(vertexDegree):
-                if bdyMaskCell[cellsOnVertex[vertex, deg] - 1] == self.UNMARKED:
-                    continue
-                elif bdyMaskVertex[vertex] == self.UNMARKED:
-                    bdyMaskVertex[vertex] = bdyMaskCell[cellsOnVertex[vertex,
-                                                                      deg]]
-
-                if (  bdyMaskCell[cellsOnVertex[vertex, deg]] 
-                    < bdyMaskVertex[vertex]):
-                    
-                    bdyMaskVertex[vertex] = bdyMaskCell[cellsOnVertex[vertex,
-                                                                      deg]]
-        return bdyMaskVertex

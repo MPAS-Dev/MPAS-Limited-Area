@@ -63,18 +63,15 @@ class MeshHandler:
 
         '''
         # We will start at cell 0
-        nCells = self.mesh.dimensions['nCells']
+        nCells = self.mesh.dimensions['nCells'].size
         latCells = np.array(self.mesh.variables['latCell'])
         lonCells = np.array(self.mesh.variables['lonCell'])
         nEdgesOnCell = np.array(self.mesh.variables['nEdgesOnCell'])
         cellsOnCell = np.array(self.mesh.variables['cellsOnCell'])
         sphere_radius = self.mesh.sphere_radius
 
-        nearest_cell = 1 # Start at the first cell
+        nearest_cell = 0 # Start at the first cell
         current_cell = -1
-
-
-        print("DEBUG: Nearest_cell Lat: ", lat, " Lon: ", lon)
 
         while (nearest_cell != current_cell):
             current_cell = nearest_cell
@@ -88,23 +85,25 @@ class MeshHandler:
             nearest_distance = current_distance
             
             for edges in range(nEdgesOnCell[current_cell]):
-                iCell = cellsOnCell[current_cell, edges]
-                if (iCell <= nCells.size):
+                iCell = cellsOnCell[current_cell, edges] - 1
+                if (iCell <= nCells):
                     iDistance = sphere_distance(latCells[iCell],
                                                 lonCells[iCell],
                                                 lat,
                                                 lon,
                                                 sphere_radius)
 
-                    if (iDistance < nearest_distance):
+                    if (iDistance <= nearest_distance):
                         nearest_cell = iCell
                         nearest_distance = iDistance
+
     
-        if self._DEBUG_ > 5:
-            print("DEBUG: nearest_cell latLon: ", nearest_cell,
+        if self._DEBUG_ > 3:
+            print("DEBUG: nearest_cell latLon: ", nearest_cell, '\t',
                                                   latCells[nearest_cell],
-                                                  lonCells[nearest_cell])
-            print("DEBUG: Nearest Cell: ", nearest_cell)
+                                                  lonCells[nearest_cell],
+                  ' Given lat lon: ', lat, lon)
+
 
         return nearest_cell
 
@@ -114,6 +113,8 @@ class MeshHandler:
                       bdyMaskCell,
                       bdyMaskEdge,
                       bdyMaskVertex,
+                      inside,
+                      unmarked,
                       *args, 
                       **kwargs):
         ''' From the current mesh, subset all the fields into a new mesh,
@@ -124,30 +125,14 @@ class MeshHandler:
 
         indexingFields = [ 'indexToCellID', 'indexToEdgeID', 'indexToVertexID' ]
                             
-
         nCells = self.mesh.dimensions['nCells'].size
         indexToCellIDs = self.mesh.variables['indexToCellID']
         indexToEdgeIDs = self.mesh.variables['indexToEdgeID']
         indexToVertexIDs = self.mesh.variables['indexToVertexID']
 
-
-       # print("bdyMaskCell: ", bdyMaskCell, len(bdyMaskCell))
-       # input('-')
-       # print("bdyMaskEdge: ", bdyMaskVertex, len(bdyMaskEdge))
-       # input('-')
-       # print("bdyMaskVertex: ", bdyMaskVertex, len(bdyMaskVertex))
-       # input('-')
-
-        bdyIndexToCellIDs = indexToCellIDs[np.where(bdyMaskCell != 0)]
-        bdyIndexToEdgeIDs = indexToEdgeIDs[np.where(bdyMaskEdge != 0)]
-        bdyIndexToVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != 0)]
-
-       # print("bdyIndexToCellIDs: ", bdyIndexToCellIDs, " size: ", len(bdyIndexToCellIDs))
-       # input("-")
-       # print("bdyIndexToEdgeIDs: ", bdyIndexToEdgeIDs, " size: ", len(bdyIndexToEdgeIDs))
-       # input("-")
-       # print("bdyIndexToVertexIDs: ", bdyIndexToVertexIDs, " size: ", len(bdyIndexToVertexIDs))
-       # input("-")
+        bdyIndexToCellIDs = indexToCellIDs[np.where(bdyMaskCell != unmarked)]
+        bdyIndexToEdgeIDs = indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)]
+        bdyIndexToVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != unmarked)]
 
 
         # Create a new grid
@@ -156,11 +141,14 @@ class MeshHandler:
         ''' Dimensions '''
         for dim in self.mesh.dimensions:
             if dim == 'nCells':
-                region.mesh.createDimension(dim, len(bdyIndexToCellIDs))
+                region.mesh.createDimension(dim, 
+                                            len(bdyIndexToCellIDs))
             elif dim == 'nEdges':
-                region.mesh.createDimension(dim, len(bdyIndexToEdgeIDs))
+                region.mesh.createDimension(dim, 
+                                            len(bdyIndexToEdgeIDs))
             elif dim == 'nVertices':
-                region.mesh.createDimension(dim, len(bdyIndexToVertexIDs))
+                region.mesh.createDimension(dim, 
+                                            len(bdyIndexToVertexIDs))
             else:
                 region.mesh.createDimension(dim,
                                             self.mesh.dimensions[dim].size)
@@ -171,78 +159,179 @@ class MeshHandler:
             region.mesh.createVariable(var, self.mesh.variables[var].dtype,
                                             self.mesh.variables[var].dimensions)
 
-
         for var in self.mesh.variables: # Subset and write variables
             print("Copying variable: ", var, end=' ', flush=True)
 
             # Cells
             if var == 'edgesOnCell':
                 region.mesh.variables[var][:] = \
-                                     reindex_field(self.mesh.variables[var][bdyIndexToCellIDs],
+                                     reindex_field(self.mesh.variables[var][bdyIndexToCellIDs-1],
                                                               bdyIndexToEdgeIDs)
             elif var == 'verticesOnCell':
                 region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToCellIDs],
+                                    reindex_field(self.mesh.variables[var][bdyIndexToCellIDs-1],
                                                   bdyIndexToVertexIDs)
             elif var == 'cellsOnCell':
                 region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToCellIDs],
+                                    reindex_field(self.mesh.variables[var][bdyIndexToCellIDs-1],
                                                   bdyIndexToCellIDs)
             # Vertices
             elif var == 'edgesOnVertex':
                 region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs],
+                                    reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs-1],
                                                   bdyIndexToEdgeIDs)
             elif var == 'cellsOnVertex':
                 region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs],
+                                    reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs-1],
                                                   bdyIndexToCellIDs)
             # Edges
             elif var == 'verticesOnEdge':
                 region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs],
+                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs-1],
                                                   bdyIndexToVertexIDs)
             elif var == 'cellsOnEdge':
                 region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs],
+                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs-1],
                                                   bdyIndexToCellIDs)
             elif var == 'edgesOnEdge':
                 region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs],
+                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs-1],
                                                   bdyIndexToEdgeIDs)
                 
-
+            elif var == 'indexToCellID':
+                print(" ")
+                region.mesh.variables[var][:] = np.arange(1, len(bdyIndexToCellIDs) + 1)
+            elif var == 'indexToEdgeID':
+                print(" ")
+                region.mesh.variables[var][:] = np.arange(1, len(bdyIndexToEdgeIDs) + 1)
+            elif var == 'indexToVertexID':
+                print(" ")
+                region.mesh.variables[var][:] = np.arange(1, len(bdyIndexToVertexIDs) + 1)
             elif 'nCells' in self.mesh.variables[var].dimensions:
                 print(" ")
                 if var in indexingFields:
                     region.mesh.variables[var][:] = \
-                                        reindex_field(self.mesh.variables[var][bdyIndexToCellIDs],
+                                        reindex_field(self.mesh.variables[var][bdyIndexToCellIDs-1],
                                                       bdyIndexToCellIDs)
                 else:
-                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToCellIDs]
+                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToCellIDs-1]
             elif 'nEdges' in self.mesh.variables[var].dimensions:
                 print(" ")
                 if var in indexingFields:
                     region.mesh.variables[var][:] = \
-                                        reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs],
+                                        reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs-1],
                                                       bdyIndexToEdgeIDs)
                 else:
-                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToEdgeIDs]
+                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToEdgeIDs-1]
             elif 'nVertices' in self.mesh.variables[var].dimensions:
                 print(" ")
                 if var in indexingFields:
                     region.mesh.variables[var][:] = \
-                                        reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs],
+                                        reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs-1],
                                                       bdyIndexToVertexIDs)
                 else:
-                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToVertexIDs]
+                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToVertexIDs-1]
+
+
+        region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
+        region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
+        region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
+
+        region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
+        region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
+        region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
 
         return region
 
 
-def reindex_field(field, index):
-    newField = np.searchsorted(index, field, side='right')
+def reindex_field_slow(field, mmap):
+    print(' ... Reindexing Field ... ', field.shape, mmap.shape, end=' ... ', flush=True)
+
+    shape = field.shape
+    field = field.ravel()
+    newField = np.zeros(len(field))
+
+    for f in range(len(field)):
+        for m in range(len(mmap)):
+            if field[f] == mmap[m]: 
+                newField[f] = m + 1
+                break
+
+    print(' Done!')
     return newField
+
+
+def reindex_field(field, mmap):
+    print(' ... Reindexing Field ... ', field.shape, mmap.shape, end=' ... ', flush=True)
+    field = field.flatten()
+    for i in range(len(field)):
+        field[i] = binary_search(mmap, field[i])
+    
+    print(' Done!')
+    return field
+
+def binary_search(arr, x):
+    l = 0
+    u = len(arr) - 1
+    k = (l + u) // 2
+
+    while u >= l:
+        if arr[k] == x:
+            return k + 1
+        elif arr[k] < x:
+            l = k + 1
+            k = (l + u) // 2
+        else:
+            u = k - 1
+            k = (l + u) // 2
+
+    return 0
+
+
+def _reindex_field(field, mmap):
+    print(' ... Reindexing Field ... ', field.shape, mmap.shape)
+
+    shape = field.shape
+    field = field.ravel()
+
+    np.set_printoptions(threshold=np.inf)
+    print('mmap: ', mmap)
+
+    for i in range(len(field)):
+        numCuts = 0
+        cut = int(np.floor(mmap.shape[0]/2))
+
+        while True:
+            numCuts += 1
+            if numCuts >= int(mmap.shape[0]): 
+                print('Did not find: ', field[i])
+                field[i] = 0
+                input('-')
+                break
+            elif cut > mmap.shape[0]:
+                print('Did not find: ', field[i])
+                field[i] = 0
+                input('-')
+                break
+            elif field[i] == mmap[cut]:
+                field[i] = cut + 1
+                break
+            elif field[i] > mmap[cut]:
+                cut += int(np.floor(cut/2))
+            elif field[i] < mmap[cut]:
+                cut = int(np.floor(cut/2))
+
+
+    field = np.reshape(field, shape)
+
+    return field
+
+
+def reindex_field_basic(field, mmap):
+    print('... Reindexing a basic field ...', field.shape, mmap.shape)
+    newField = np.searchsorted(field, mmap) + 1
+    return newField
+
 
 def copy_mesh(inMesh):
     ''' Copy `inMesh` and then return a new mesh class that points to the copy
@@ -276,9 +365,11 @@ def sphere_distance(lat1, lon1, lat2, lon2, radius, **kwargs):
 
     TODO: Update doc with return value
     '''
+
+
     return (2 * radius * np.arcsin(
                          np.sqrt(
-                         np.sin(0.5 * (lat2 - lat1)**2 
+                         np.sin(0.5 * (lat2 - lat1))**2
                        + np.cos(lat1) 
                        * np.cos(lat2) 
-                       * np.sin(0.5 * (lon2 - lon1))**2))))
+                       * np.sin(0.5 * (lon2 - lon1))**2)))
