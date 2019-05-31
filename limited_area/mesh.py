@@ -155,6 +155,19 @@ class MeshHandler:
         bdyIndexToEdgeIDs = indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)]
         bdyIndexToVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != unmarked)]
 
+        # Check to see the user didn't mess specifying the region. If 
+        # len(bdyIndexToCellIDs) == nCells, then the specification was probably not
+        # specified correctly
+        if len(bdyIndexToCellIDs) == nCells:
+            print("ERROR: The number of Cells in the specified region ",
+                  "(", len(bdyIndexToCellIDs), ")")
+            print("ERROR: appears to be equal number of cells in the global mesh",
+                  "(", nCells, ")")
+            print("ERROR: which means there was perhaps a problem in specifying the")
+            print("ERROR: region. Please insure your region specification is correct")
+            sys.exit(-1)
+        
+
         # Create a new grid
         region = MeshHandler(regionalFname, 'w', *args, **kwargs)
 
