@@ -75,9 +75,7 @@ counter-clockwise order.
 
 ## CONUS Points Example
 
-Define a polygon method by defining a new points file ( for instance,
-`conus.custom.pts` ) as the following:
-
+An example polygon method for defining CONUS region (`conus.custom.pts`):
 ```
 Name: conus
 Type: custom
@@ -87,4 +85,3 @@ Point: 40.0, -100.0
 20.0, -65.0
 20.0, -129.0
 ```
-
