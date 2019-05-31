@@ -1,4 +1,3 @@
-''' NetCDF Handler '''
 from __future__ import absolute_import, division, print_function
 import sys
 import os
@@ -6,9 +5,12 @@ import os
 import numpy as np
 from netCDF4 import Dataset
 
+""" mesh.py - Handle NetCDF file operations as well as calculations
+upon on MPAS grid."""
 
 class MeshHandler:
-    """ """
+    """ Handle the operations related to NetCDF/MPAS grids. """
+
     def __init__(self, fname, mode, *args, **kwargs):
         """ """
         self._DEBUG_ = kwargs.get('DEBUG', 0)
@@ -22,8 +24,9 @@ class MeshHandler:
         elif mode == 'w':
             self.create_file(fname, mode)
 
+
     def create_file(self, fname, mode):
-        """ """
+        """ Create and open a new NetCDF file with name fname and access mode mode """
         try:
             self.mesh = Dataset(fname, mode)
             return
@@ -31,12 +34,13 @@ class MeshHandler:
             print("ERROR: There was a problem creating the file ", fname)
             sys.exit(-1)
 
+
     def check_file(self, fname):
-        """ """
+        """ Check to see that fname exists and it is a valid NetCDF file """
         if os.path.isfile(fname):
             try:
                 self.mesh = Dataset(fname, 'r')
-                if self._DEBUG_ > 1:
+                if self._DEBUG_ > 2:
                     print("DEBUG: Mesh's dimensions: ", fname)
                     self.print_all_dimensions()
                     print("DEBUG: Mesh's variables: ", fname)
@@ -50,21 +54,22 @@ class MeshHandler:
             print("ERROR: This file did not exist!")
             return False
 
+
     def print_all_dimensions(self):
-        """ """
+        """ Print all the dimension names for this mesh"""
         print(self.mesh.dimensions.keys())
 
 
     def print_all_variables(self):
-        """ """
+        """ Print all the variable names for this mesh"""
         print(self.mesh.variables.keys())
 
 
     def nearest_cell(self, lat, lon):
-        """ Find the nearest cell to lat and lon
+        """ Find the nearest cell of this mesh to lat and lon
 
-        lat - Latitude - In degrees - -90:90
-        lon - Longitude  - In degrees - -180:180
+        lat - Latitude - Radians
+        lon - Longitude - Radians
         """
         # We will start at cell 0
         nCells = self.mesh.dimensions['nCells'].size
@@ -121,8 +126,20 @@ class MeshHandler:
                       unmarked,
                       *args, 
                       **kwargs):
-        """ From the current mesh, subset all the fields into a new mesh,
-        regionalFname """
+        """ Subset the current mesh and return a new regional mesh with
+        subsetted fields 
+        
+        regionalFname -- Desired filename for the regional subset
+        bdyMaskCell   -- Global mesh mask denoting regional cells
+        bdyMaskEdge   -- Global mesh mask denoting regional edges
+        bdyMaskVertex -- Global mesh mask denoting regional vertices
+        inside        -- The integer value that was used to mark the 
+                         cells, edges, vertices as being 'inside' the 
+                         regional within the bdyMasks
+        unmarked      -- The integer value that was used to mark cells,
+                         edges, vertices as being 'outside' of the regional
+                         mesh.
+        """
 
         # Don't pass on DEBUG to the regional mess - tone down output
         kwargs.pop('DEBUG')
@@ -141,7 +158,7 @@ class MeshHandler:
         # Create a new grid
         region = MeshHandler(regionalFname, 'w', *args, **kwargs)
 
-        # Dimensions
+        # Dimensions - Create dimensions
         for dim in self.mesh.dimensions:
             if dim == 'nCells':
                 region.mesh.createDimension(dim, 
@@ -156,13 +173,14 @@ class MeshHandler:
                 region.mesh.createDimension(dim,
                                             self.mesh.dimensions[dim].size)
         
-        # Variables
-        # Create variables
+        # Variables - Create Variables
         for var in self.mesh.variables:
             region.mesh.createVariable(var, self.mesh.variables[var].dtype,
                                             self.mesh.variables[var].dimensions)
 
-        for var in self.mesh.variables: # Subset and write variables
+        # Subset global variables into the regional mesh and write them
+        # to the regional mesh - reindexing if neccessary
+        for var in self.mesh.variables:
             print("Copying variable: ", var, end=' ', flush=True)
 
             # Cells
@@ -240,6 +258,9 @@ class MeshHandler:
         region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
         region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
 
+
+        # Make boundary Mask's between 0 and the number of speficified relaxtion
+        # layers
         region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
         region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
         region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
@@ -250,7 +271,8 @@ class MeshHandler:
 
 
 def reindex_field(field, mmap):
-    """ """
+    """ If field[i] is in mmap, then reindex it with the index of 
+    mmap where it equals field[i] """
     print(' ... Reindexing Field ... ', field.shape, mmap.shape, end=' ... ', flush=True)
     field = field.flatten()
     for i in range(len(field)):
@@ -261,7 +283,8 @@ def reindex_field(field, mmap):
 
 
 def binary_search(arr, x):
-    """ """
+    """ Search for x in arr and return the location of x in arr or
+    return 0 if it is not found. """
     l = 0
     u = len(arr) - 1
     k = (l + u) // 2
@@ -280,12 +303,11 @@ def binary_search(arr, x):
 
 
 def latlon_to_xyz(lat, lon, radius):
-    """ Calculate the x, y, z cordinations of lat, lon on the sphere that has
+    """ Calculate and return x, y, z cordinations of lat, lon on the sphere that has
     radius, radius.
-    lat -
-    lon -
-    radius -
-    TODO: Update this doc
+    lat - Latitude
+    lon - Longitutde
+    radius - Radius of sphere
     """
     z = radius * np.sin(lat)
     x = radius * np.cos(lon)
@@ -303,7 +325,6 @@ def sphere_distance(lat1, lon1, lat2, lon2, radius, **kwargs):
     lon2 - Float - Radians - 0:2*pi
     radius - Radius of the earth (or sphere) - Units can be ignored
 
-    TODO: Update doc with return value
     """ 
     return (2 * radius * np.arcsin(
                          np.sqrt(

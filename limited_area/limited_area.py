@@ -11,7 +11,7 @@ from limited_area.mesh import sphere_distance
 from limited_area.region_spec import RegionSpec
 
 class LimitedArea():
-    """ These could possible go into a settings.py file ?? """
+    """ Facilitate creating a regional MPAS mesh from a global MPAS mesh  """
     num_boundary_layers = 8
     INSIDE = 1
     UNMARKED = 0
@@ -24,6 +24,7 @@ class LimitedArea():
                  *args,
                  **kwargs):
         """ Init function for Limited Area
+
         Check to see if mesh file exists and it is the correct type. Check to
         see that the region file exist and finally set the regionSpec to the
         requeste regionFormat
@@ -38,7 +39,12 @@ class LimitedArea():
                         'shapefile'
 
         Named Args TODO: Look up the format to do this
-        DEBUG_VALUE -
+        DEBUG         -- Debug value used to turn on debug output, default == 0
+        output        -- Optional name to append to regional mesh filename
+        algorithm     -- Algorithm choice for connecting boundary points. Default
+                         is follow the line
+        markNeighbors -- Algorithm choice for choosing relaxation layers - Default
+                         is mark neighbor serach
         """ 
         self.meshes = []
 
@@ -52,7 +58,7 @@ class LimitedArea():
             self.output = ''
 
         # Check to see that all of the meshes exists and that they are
-        # netcdfs
+        # valid netCDF files.
         for mesh in mesh_files:
             if os.path.isfile(mesh):
                 self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
@@ -91,9 +97,8 @@ class LimitedArea():
         
         
     def gen_region(self, *args, **kwargs):
-        """ gen_region - Generate the boundary region of the given region
-         for the given mesh(es).
-        """ 
+        """ Generate the boundary region of the given region for the given mesh(es). """
+
         # Call the regionSpec to generate `name, in_point, points`
         name, inPoint, points = self.regionSpec.gen_spec(self.region_file)
 
@@ -157,14 +162,22 @@ class LimitedArea():
 
 
     def create_regional_fname(self, name, mesh):
-        """ """
+        """ Generate the filename for the rgional mesh """
         nCells = mesh.mesh.dimensions['nCells'].size
         return os.path.join(self.output, name+'.'+str(nCells)+'.nc')
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
-    def _mark_neighbors_search(self, mesh, nType, bdyMaskCell, *args, **kwargs):
-        """ """
+    def _mark_neighbors_search(self, mesh, layer, bdyMaskCell, *args, **kwargs):
+        """ Mark the relaxation layers using a search and return an updated bdyMaskCell with
+        those relaxation layers
+        
+        mesh        -- The global MPAS mesh
+        layer       -- The relaxation layer
+        bdyMaskCell -- The global mask marking the regional cell subset
+        inCell      -- A point that is inside the regional area
+
+        """
         inCell = kwargs.get('inCell', None)
         if inCell == None:
             print("ERROR: In cell not found within _mark_neighbors_search")
@@ -177,11 +190,11 @@ class LimitedArea():
             iCell = stack.pop()
             for i in range(nEdgesOnCell[iCell]):
                 j = cellsOnCell[iCell, i] - 1
-                if nType > bdyMaskCell[j] >= self.INSIDE:
+                if layer > bdyMaskCell[j] >= self.INSIDE:
                     bdyMaskCell[j] = -bdyMaskCell[j]
                     stack.append(j)
                 elif bdyMaskCell[j] == 0:
-                    bdyMaskCell[j] = nType
+                    bdyMaskCell[j] = layer 
 
         bdyMaskCell[:] = abs(bdyMaskCell[:])
 
@@ -202,7 +215,14 @@ class LimitedArea():
 
 
     def flood_fill(self, mesh, inCell, bdyMaskCell):
-        """ """
+        """ Mark the interior points of the regional mesh and return and updated
+        bdyMaskCell.
+
+        mesh        -- Global MPAS Mesh
+        inCell      -- A point that is inside the specified region
+        bdyMaskCell -- The global mask marking which global cells are interior, relaxation
+                       and those that are outside.
+        """
         if self._DEBUG_ > 1:
             print("DEBUG: Flood filling with flood_fill!")
         nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
@@ -221,13 +241,19 @@ class LimitedArea():
 
 
     def mark_edges(self, mesh, bdyMaskCell, *args, **kwargs):
-        """ """
+        """ Mark the edges that are in the specified region and return
+        bdyMaskEdge.
+        
+        mesh -
+        bdyMaskCell -
+        """
         cellsOnEdge = mesh.mesh.variables['cellsOnEdge'][:]
         return bdyMaskCell[cellsOnEdge[:][:] - 1].max(axis=1)
 
 
     def mark_vertices(self, mesh, bdyMaskCell, *args, **kwargs):
-        """ """
+        """ Mark the vertices that are in the spefied region and return
+        bdyMaskVertex."""
         cellsOnVertex = mesh.mesh.variables['cellsOnVertex'][:]
         return bdyMaskCell[cellsOnVertex[:][:] - 1].max(axis=1)
     
@@ -236,8 +262,12 @@ class LimitedArea():
     def follow_the_line(self, mesh, inPoint, points, *args, **kwargs):
         """ Mark the nearest cell to each of the cords in points
         as a boundary cell.
-        """
 
+        mesh -
+        inPoint -
+        points -
+
+        """
         if self._DEBUG_ > 0: 
             print("DEBUG: Marking the boundary points: ")
 
@@ -271,6 +301,15 @@ class LimitedArea():
         for bCells in boundaryCells:
             bdyMaskCell[bCells] = self.INSIDE
 
+        # For each boundaryCells, mark the current cell as the source cell
+        # and the next (or the first element if the current is the last) as 
+        # the target cell.
+        #
+        # Then, determine the great-arc angle between the source and taget
+        # cell, and then for each cell, starting at the source cell, 
+        # calculate the great-arc angle between the cells on the current
+        # cell and the target cell, and then add the cell with the smallest
+        # angle.
         for i in range(len(boundaryCells)):
             sourceCell = boundaryCells[i]
             targetCell = boundaryCells[(i + 1) % len(boundaryCells)]

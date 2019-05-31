@@ -3,10 +3,9 @@ import os
 import sys
 
 """ Parse the points file, and output a representation that can be passed back
-that can be used to. """
+that can be used to.
 
-
-""" File Examples:
+File Examples:
 
 # Circle
 ```
@@ -57,7 +56,9 @@ LatN, LonN
 """
 
 def PointsParser(self, file, *args, **kwargs):
-    """ """
+    """ Parse file for our points syntax and set variables 
+    accordingly (self.variable ...)"""
+
     self.points = []
 
     # Kwargs
@@ -82,8 +83,8 @@ def PointsParser(self, file, *args, **kwargs):
             if lhs == 'Name' or lhs == 'name':
                 # TODO: Do some error checking of the name
                 self.name = rhs
+            # Check to see if the type matches our avaiable types
             elif lhs == 'Type' or lhs == 'type':
-                # Check to see if the type matches our avaiable types
                 if rhs == 'Custom' or rhs == 'custom':
                     self.type = 'custom'
                 elif rhs == 'Square' or rhs == 'square':
