@@ -156,6 +156,9 @@ class LimitedArea():
                                               *args,
                                               **kwargs)
             
+            print('Copying global attributes...')
+            mesh.copy_global_attributes(regionalMesh)
+
             print("Created a regional mesh: ", regionFname)
             mesh.mesh.close()
             regionalMesh.mesh.close()

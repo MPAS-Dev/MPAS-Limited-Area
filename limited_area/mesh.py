@@ -116,6 +116,29 @@ class MeshHandler:
 
         return nearest_cell
 
+    def create_graph_file(self, graphFname):
+        nCells = self.mesh.dimensions['nCells'].size
+        nEdges = self.mesh.dimensions['nEdges'].size
+
+        nEdgesOnCell = self.mesh.variables['nEdgesOnCell'][:]
+        cellsOnCell = self.mesh.variables['cellsOnCell'][:]
+        cellsOnEdge = self.mesh.variables['cellsOnEdge'][:]
+        
+        nEdgesInterior = 0
+        for i in range(nEdges):
+            if cellsOnEdge[i,0] > 0 and cellsOnEdge[i,1] > 0:
+                nEdgesInterior = nEdgesInterior + 1
+
+
+        with open(graphFname, 'w') as f:
+            f.write(repr(nCells)+' '+repr(nEdgesInterior)+'\n')
+            for i in range(nCells):
+                for j in range(nEdgesOnCell[i]):
+                    if (cellsOnCell[i,j] > 0):
+                        f.write(repr(cellsOnCell[i,j])+' ')
+                f.write('\n')
+            
+        print(graphFname)
 
     def subset_fields(self, 
                       regionalFname, 
@@ -279,6 +302,16 @@ class MeshHandler:
         region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
 
         return region
+
+    def copy_global_attributes(self, region):
+        """ Copy the global attributes into the regional mesh, but not 'np' """
+        region.mesh.np = region.mesh.dimensions['nCells'].size
+
+        region.mesh.on_a_sphere = self.mesh.on_a_sphere
+        region.mesh.sphere_radius = self.mesh.sphere_radius
+        region.mesh.n_scvt_iterations = self.mesh.n_scvt_iterations
+        region.mesh.eps = self.mesh.eps
+        region.mesh.Convergence = self.mesh.Convergence
 
 
 
