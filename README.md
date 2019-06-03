@@ -52,9 +52,9 @@ method is the polygon method.
 A polygon points file would look like the following:
 ```
 Name: Desired_name_of_region 
-Type: custom    
-Point: lat, lon 
-lat1, lon1
+Type: custom        # Options are: [custom | circle | ellipse]
+Point: lat, lon     # Point that inside the region
+lat1, lon1          # List of points specifying the region
 lat2, lon2
 lat3, lon3
 ...
