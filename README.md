@@ -18,7 +18,7 @@ $ setenv PATH ${PATH}:/path/to/MPAS-Limited-Area
 
 Then, run the `create_region` command-line script:
 ```Bash
-$ # Running the script with no arguments will produce help output
+$ # Running the script with no arguments will produce a usage output
 $ create_region
 Usage: create_region [-h] [-o OUTPUT] [-a ALGORITHM] [-v VERBOSE]
                      points grid [grid ...]
