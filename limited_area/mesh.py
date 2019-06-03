@@ -116,7 +116,6 @@ class MeshHandler:
 
         return nearest_cell
 
-<<<<<<< HEAD
     def create_graph_file(self, graphFname):
         nCells = self.mesh.dimensions['nCells'].size
         nEdges = self.mesh.dimensions['nEdges'].size
