@@ -146,8 +146,8 @@ class LimitedArea():
             
             # Subset the grid into a new region:
             print('Subseting mesh fields into the specified region mesh...')
-            regionFname = self.create_regional_fname(name, mesh)
-            regionalMesh = mesh.subset_fields(regionFname, 
+            regionFname = self.create_regional_fname(name, mesh, output=self.output)
+            regionalMesh = mesh.subset_fields(regionFname,
                                               bdyMaskCell,
                                               bdyMaskEdge,
                                               bdyMaskVertex,
@@ -155,19 +155,40 @@ class LimitedArea():
                                               unmarked=self.UNMARKED,
                                               *args,
                                               **kwargs)
-            
+
             print('Copying global attributes...')
             mesh.copy_global_attributes(regionalMesh)
 
             print("Created a regional mesh: ", regionFname)
+
+            print('Creating graph partition file...', end=' ', flush=True)
+            regionalMesh.create_graph_file(self.create_partiton_fname(name, 
+                                                                      mesh, 
+                                                                      output=self.output))
+
             mesh.mesh.close()
             regionalMesh.mesh.close()
 
+    def create_partiton_fname(self, name, mesh, **kwargs):
+        """ Generate the filename for the regional graph.info file"""
+        output = kwargs.get('output', None)
 
-    def create_regional_fname(self, name, mesh):
-        """ Generate the filename for the rgional mesh """
-        nCells = mesh.mesh.dimensions['nCells'].size
-        return os.path.join(self.output, name+'.'+str(nCells)+'.nc')
+        if output:
+            return output+'.graph.info'
+        else:
+            nCells = mesh.mesh.dimensions['nCells'].size
+            return name+'.'+str(nCells)+'.graph.info'
+        
+
+    def create_regional_fname(self, name, mesh, **kwargs):
+        """ Generate the filename for the regional mesh file """
+        output = kwargs.get('output', None)
+
+        if output:
+            return output 
+        else:
+            nCells = mesh.mesh.dimensions['nCells'].size
+            return name+'.'+str(nCells)+'.nc'
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
