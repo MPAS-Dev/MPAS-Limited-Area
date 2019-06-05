@@ -188,7 +188,7 @@ class LimitedArea():
             return output 
         else:
             nCells = mesh.mesh.dimensions['nCells'].size
-            return name+'.'+str(nCells)+'.nc'
+            return name+'.'+str(nCells)+'.grid.nc'
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
