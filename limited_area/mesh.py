@@ -39,7 +39,11 @@ class MeshHandler:
         """ Check to see that fname exists and it is a valid NetCDF file """
         if os.path.isfile(fname):
             try:
-                self.mesh = Dataset(fname, 'r')
+                mesh = open(fname, 'rb')
+                nc_bytes = mesh.read()
+                mesh.close()
+                
+                self.mesh = Dataset(fname, 'r', memory=nc_bytes)
                 if self._DEBUG_ > 2:
                     print("DEBUG: Mesh's dimensions: ", fname)
                     self.print_all_dimensions()
@@ -123,12 +127,15 @@ class MeshHandler:
         nEdgesOnCell = self.mesh.variables['nEdgesOnCell'][:]
         cellsOnCell = self.mesh.variables['cellsOnCell'][:]
         cellsOnEdge = self.mesh.variables['cellsOnEdge'][:]
-        
-        nEdgesInterior = 0
-        for i in range(nEdges):
-            if cellsOnEdge[i,0] > 0 and cellsOnEdge[i,1] > 0:
-                nEdgesInterior = nEdgesInterior + 1
 
+        lines = []
+        line = ''
+
+        nEdgesInterior = 0
+
+        for i in range(nEdges):
+            if (cellsOnEdge[i,0] > 0 and cellsOnEdge[i,1] > 0):
+                nEdgesInterior = nEdgesInterior + 1
 
         with open(graphFname, 'w') as f:
             f.write(repr(nCells)+' '+repr(nEdgesInterior)+'\n')
@@ -137,7 +144,7 @@ class MeshHandler:
                     if (cellsOnCell[i,j] > 0):
                         f.write(repr(cellsOnCell[i,j])+' ')
                 f.write('\n')
-            
+
         print(graphFname)
 
     def copy_global_attributes(self, region):
@@ -178,29 +185,40 @@ class MeshHandler:
         # Don't pass on DEBUG to the regional mess - tone down output
         kwargs.pop('DEBUG')
 
-        indexingFields = [ 'indexToCellID', 'indexToEdgeID', 'indexToVertexID' ]
+        indexingFields = {}
+        indexingFields['indexToCellID'] = bdyMaskCell
+        indexingFields['indexToEdgeID'] = bdyMaskEdge
+        indexingFields['indexToVertexID'] = bdyMaskVertex
+        indexingFields['cellsOnEdge'] = bdyMaskCell
+        indexingFields['edgesOnCell'] = bdyMaskEdge
+        indexingFields['edgesOnEdge'] = bdyMaskEdge
+        indexingFields['cellsOnCell'] = bdyMaskCell
+        indexingFields['verticesOnCell'] = bdyMaskVertex
+        indexingFields['verticesOnEdge'] = bdyMaskVertex
+        indexingFields['edgesOnVertex'] = bdyMaskEdge
+        indexingFields['cellsOnVertex'] = bdyMaskCell
                             
         nCells = self.mesh.dimensions['nCells'].size
-        indexToCellIDs = self.mesh.variables['indexToCellID']
-        indexToEdgeIDs = self.mesh.variables['indexToEdgeID']
-        indexToVertexIDs = self.mesh.variables['indexToVertexID']
+        indexToCellIDs = self.mesh.variables['indexToCellID'][:]
+        indexToEdgeIDs = self.mesh.variables['indexToEdgeID'][:]
+        indexToVertexIDs = self.mesh.variables['indexToVertexID'][:]
 
-        bdyIndexToCellIDs = indexToCellIDs[np.where(bdyMaskCell != unmarked)]
-        bdyIndexToEdgeIDs = indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)]
-        bdyIndexToVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != unmarked)]
+        glbBdyCellIDs = indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
+        glbBdyEdgeIDs = indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
+        glbBdyVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
+
 
         # Check to see the user didn't mess specifying the region. If 
         # len(bdyIndexToCellIDs) == nCells, then the specification was probably not
         # specified correctly
-        if len(bdyIndexToCellIDs) == nCells:
+        if len(glbBdyCellIDs) == nCells:
             print("ERROR: The number of Cells in the specified region ",
-                  "(", len(bdyIndexToCellIDs), ")")
+                  "(", len(glbBdyCellIDs), ")")
             print("ERROR: appears to be equal number of cells in the global mesh",
                   "(", nCells, ")")
             print("ERROR: which means there was perhaps a problem in specifying the")
             print("ERROR: region. Please insure your region specification is correct")
             sys.exit(-1)
-        
 
         # Create a new grid
         region = MeshHandler(regionalFname, 'w', *args, **kwargs)
@@ -209,16 +227,30 @@ class MeshHandler:
         for dim in self.mesh.dimensions:
             if dim == 'nCells':
                 region.mesh.createDimension(dim, 
-                                            len(bdyIndexToCellIDs))
+                                            len(glbBdyCellIDs))
             elif dim == 'nEdges':
                 region.mesh.createDimension(dim, 
-                                            len(bdyIndexToEdgeIDs))
+                                            len(glbBdyEdgeIDs))
             elif dim == 'nVertices':
                 region.mesh.createDimension(dim, 
-                                            len(bdyIndexToVertexIDs))
+                                            len(glbBdyVertexIDs))
             else:
                 region.mesh.createDimension(dim,
                                             self.mesh.dimensions[dim].size)
+
+        # Make boundary Mask's between 0 and the number of speficified relaxtion
+        # layers
+        region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
+        region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
+        region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
+
+        region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
+        region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
+        region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
+
+        scan(bdyMaskCell)
+        scan(bdyMaskEdge)
+        scan(bdyMaskVertex)
         
         # Variables - Create Variables
         for var in self.mesh.variables:
@@ -228,89 +260,38 @@ class MeshHandler:
         # Subset global variables into the regional mesh and write them
         # to the regional mesh - reindexing if neccessary
         for var in self.mesh.variables:
-            print("Copying variable: ", var, end=' ', flush=True)
+            print("Copying variable ", var, "...", end=' ', sep='', flush=True)
+            arrTemp = self.mesh.variables[var][:]
 
-            # Cells
-            if var == 'edgesOnCell':
-                region.mesh.variables[var][:] = \
-                                     reindex_field(self.mesh.variables[var][bdyIndexToCellIDs-1],
-                                                              bdyIndexToEdgeIDs)
-            elif var == 'verticesOnCell':
-                region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToCellIDs-1],
-                                                  bdyIndexToVertexIDs)
-            elif var == 'cellsOnCell':
-                region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToCellIDs-1],
-                                                  bdyIndexToCellIDs)
-            # Vertices
-            elif var == 'edgesOnVertex':
-                region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs-1],
-                                                  bdyIndexToEdgeIDs)
-            elif var == 'cellsOnVertex':
-                region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs-1],
-                                                  bdyIndexToCellIDs)
-            # Edges
-            elif var == 'verticesOnEdge':
-                region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs-1],
-                                                  bdyIndexToVertexIDs)
-            elif var == 'cellsOnEdge':
-                region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs-1],
-                                                  bdyIndexToCellIDs)
-            elif var == 'edgesOnEdge':
-                region.mesh.variables[var][:] = \
-                                    reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs-1],
-                                                  bdyIndexToEdgeIDs)
-                
-            elif var == 'indexToCellID':
-                print(" ")
-                region.mesh.variables[var][:] = np.arange(1, len(bdyIndexToCellIDs) + 1)
-            elif var == 'indexToEdgeID':
-                print(" ")
-                region.mesh.variables[var][:] = np.arange(1, len(bdyIndexToEdgeIDs) + 1)
-            elif var == 'indexToVertexID':
-                print(" ")
-                region.mesh.variables[var][:] = np.arange(1, len(bdyIndexToVertexIDs) + 1)
-            elif 'nCells' in self.mesh.variables[var].dimensions:
-                print(" ")
+            if 'nCells' in self.mesh.variables[var].dimensions:
                 if var in indexingFields:
-                    region.mesh.variables[var][:] = \
-                                        reindex_field(self.mesh.variables[var][bdyIndexToCellIDs-1],
-                                                      bdyIndexToCellIDs)
+                    region.mesh.variables[var][:] = reindex_field(arrTemp[glbBdyCellIDs], 
+                                                                  indexingFields[var])
+                    print('Done!')
                 else:
-                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToCellIDs-1]
+                    print('')
+                    region.mesh.variables[var][:] = arrTemp[glbBdyCellIDs]
             elif 'nEdges' in self.mesh.variables[var].dimensions:
-                print(" ")
                 if var in indexingFields:
-                    region.mesh.variables[var][:] = \
-                                        reindex_field(self.mesh.variables[var][bdyIndexToEdgeIDs-1],
-                                                      bdyIndexToEdgeIDs)
+                    region.mesh.variables[var][:] = reindex_field(arrTemp[glbBdyEdgeIDs], 
+                                                                  indexingFields[var])
+                    print('Done!')
                 else:
-                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToEdgeIDs-1]
+                    print('')
+                    region.mesh.variables[var][:] = arrTemp[glbBdyEdgeIDs]
             elif 'nVertices' in self.mesh.variables[var].dimensions:
-                print(" ")
                 if var in indexingFields:
-                    region.mesh.variables[var][:] = \
-                                        reindex_field(self.mesh.variables[var][bdyIndexToVertexIDs-1],
-                                                      bdyIndexToVertexIDs)
+                    region.mesh.variables[var][:] = reindex_field(arrTemp[glbBdyVertexIDs], 
+                                                                  indexingFields[var])
+                    print('Done!')
                 else:
-                    region.mesh.variables[var][:] = self.mesh.variables[var][bdyIndexToVertexIDs-1]
+                    print('')
+                    region.mesh.variables[var][:] = arrTemp[glbBdyVertexIDs]
+            else:
+                print('')
+                region.mesh.variables[var][:] = arrTemp[var]
 
 
-        region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
-        region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
-        region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
-
-
-        # Make boundary Mask's between 0 and the number of speficified relaxtion
-        # layers
-        region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
-        region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
-        region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
 
         return region
 
@@ -325,38 +306,15 @@ class MeshHandler:
         region.mesh.Convergence = self.mesh.Convergence
 
 
+def scan(arr):
+    """ """
+    arr[arr > 0] = np.arange(1, len(arr[arr > 0])+1)
 
 
 def reindex_field(field, mmap):
-    """ If field[i] is in mmap, then reindex it with the index of 
-    mmap where it equals field[i] """
-    print(' ... Reindexing Field ... ', field.shape, mmap.shape, end=' ... ', flush=True)
-    field = field.flatten()
-    for i in range(len(field)):
-        field[i] = binary_search(mmap, field[i])
-    
-    print(' Done!')
-    return field
+    print('reindxing field ...', end=' ', flush=True)
+    return mmap[field[:]-1]
 
-
-def binary_search(arr, x):
-    """ Search for x in arr and return the location of x in arr or
-    return 0 if it is not found. """
-    l = 0
-    u = len(arr) - 1
-    k = (l + u) // 2
-
-    while u >= l:
-        if arr[k] == x:
-            return k + 1
-        elif arr[k] < x:
-            l = k + 1
-            k = (l + u) // 2
-        else:
-            u = k - 1
-            k = (l + u) // 2
-
-    return 0
 
 
 def latlon_to_xyz(lat, lon, radius):
