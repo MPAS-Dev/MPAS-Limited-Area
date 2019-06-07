@@ -129,6 +129,8 @@ class LimitedArea():
                 self.mark_neighbors(mesh, layer, bdyMaskCell, inCell=inCell)
             print('DONE!')
 
+            bdyMaskCell_cp = bdyMaskCell
+
             # Mark the edges
             print('Markin region edges ...')
             bdyMaskEdge = self.mark_edges(mesh, 
@@ -143,7 +145,7 @@ class LimitedArea():
                                                *args,
                                                **kwargs)
 
-            
+
             # Subset the grid into a new region:
             print('Subseting mesh fields into the specified region mesh...')
             regionFname = self.create_regional_fname(name, mesh, output=self.output)
@@ -271,15 +273,67 @@ class LimitedArea():
         mesh -
         bdyMaskCell -
         """
+        nEdges = mesh.mesh.dimensions['nEdges'].size
         cellsOnEdge = mesh.mesh.variables['cellsOnEdge'][:]
-        return bdyMaskCell[cellsOnEdge[:][:] - 1].max(axis=1)
+        bdyMaskEdge = np.zeros(nEdges, dtype=np.dtype('i'))
+        np.set_printoptions(threshold=np.inf)
+
+        for i in range(nEdges):
+            cells = cellsOnEdge[i,:]
+            if np.all(bdyMaskCell[cells - 1 ] == 0):
+                bdyMaskEdge[i] = 0
+            elif np.any(bdyMaskCell[cells - 1] == 0):
+                cellMasks = bdyMaskCell[cells - 1]
+                bdyMaskEdge[i] = np.min(cellMasks[cellMasks > 0])
+            else:
+                bdyMaskEdge[i] = np.min(bdyMaskCell[cells - 1])
+
+        if self._DEBUG_ > 0:
+            print("bdyMaskEdges count:")
+            print("0: ", len(bdyMaskEdge[bdyMaskEdge == 0]))
+            print("1: ", len(bdyMaskEdge[bdyMaskEdge == 1]))
+            print("2: ", len(bdyMaskEdge[bdyMaskEdge == 2]))
+            print("3: ", len(bdyMaskEdge[bdyMaskEdge == 3]))
+            print("4: ", len(bdyMaskEdge[bdyMaskEdge == 4]))
+            print("5: ", len(bdyMaskEdge[bdyMaskEdge == 5]))
+            print("6: ", len(bdyMaskEdge[bdyMaskEdge == 6]))
+            print("7: ", len(bdyMaskEdge[bdyMaskEdge == 7]))
+            print("8: ", len(bdyMaskEdge[bdyMaskEdge == 8]))
+
+        return bdyMaskEdge
 
 
     def mark_vertices(self, mesh, bdyMaskCell, *args, **kwargs):
         """ Mark the vertices that are in the spefied region and return
         bdyMaskVertex."""
+        nVertices = mesh.mesh.dimensions['nVertices'].size
+        vDegree = mesh.mesh.dimensions['vertexDegree'].size
         cellsOnVertex = mesh.mesh.variables['cellsOnVertex'][:]
-        return bdyMaskCell[cellsOnVertex[:][:] - 1].max(axis=1)
+        bdyMaskVertex = np.zeros(nVertices, dtype=np.dtype('i'))
+
+        for i in range(nVertices):
+            cells = cellsOnVertex[i,:]
+            if np.all(bdyMaskCell[cells - 1] == 0):
+                bdyMaskVertex[i] = 0
+            elif np.any(bdyMaskCell[cells - 1] == 0):
+                cellMasks = bdyMaskCell[cells - 1]
+                bdyMaskVertex[i] = np.min(cellMasks[cellMasks > 0])
+            else:
+                bdyMaskVertex[i] = np.min(bdyMaskCell[cells - 1])
+
+        if self._DEBUG_ > 0:
+            print("bdyMaskVertex count:")
+            print("0: ", len(bdyMaskVertex[bdyMaskVertex == 0]))
+            print("1: ", len(bdyMaskVertex[bdyMaskVertex == 1]))
+            print("2: ", len(bdyMaskVertex[bdyMaskVertex == 2]))
+            print("3: ", len(bdyMaskVertex[bdyMaskVertex == 3]))
+            print("4: ", len(bdyMaskVertex[bdyMaskVertex == 4]))
+            print("5: ", len(bdyMaskVertex[bdyMaskVertex == 5]))
+            print("6: ", len(bdyMaskVertex[bdyMaskVertex == 6]))
+            print("7: ", len(bdyMaskVertex[bdyMaskVertex == 7]))
+            print("8: ", len(bdyMaskVertex[bdyMaskVertex == 8]))
+
+        return bdyMaskVertex
     
 
     # Mark Boundary points
