@@ -265,7 +265,7 @@ class MeshHandler:
         # Subset global variables into the regional mesh and write them
         # to the regional mesh - reindexing if neccessary
         for var in self.mesh.variables:
-            print("Copying variable ", var, "...", end=' ', sep='', flush=True)
+            print("Copying variable ", var, "...", end=' ', sep=''); sys.stdout.flush()
             arrTemp = self.mesh.variables[var][:]
 
             if 'nCells' in self.mesh.variables[var].dimensions:
@@ -316,7 +316,7 @@ def scan(arr):
 
 
 def reindex_field(field, mmap):
-    print('reindxing field ...', end=' ', flush=True)
+    print('reindxing field ...', end=' '); sys.stdout.flush()
     return mmap[field[:]-1]
 
 

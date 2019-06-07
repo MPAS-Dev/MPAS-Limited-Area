@@ -112,9 +112,9 @@ class LimitedArea():
             bdyMaskCell = self.flood_fill(mesh, inCell, bdyMaskCell)
 
             # Mark the neighbors
-            print('Creating boundary laryer:', end=' ', flush=True)
+            print('Creating boundary laryer:', end=' '); sys.stdout.flush()
             for layer in range(1, self.num_boundary_layers + 1):
-                print(layer, ' ...', end=' ', flush=True)
+                print(layer, ' ...', end=' '); sys.stdout.flush()
                 self.mark_neighbors(mesh, layer, bdyMaskCell, inCell=inCell)
             print('DONE!')
 
@@ -152,7 +152,7 @@ class LimitedArea():
 
             print("Created a regional mesh: ", regionFname)
 
-            print('Creating graph partition file...', end=' ', flush=True)
+            print('Creating graph partition file...', end=' '); sys.stdout.flush()
             regionalMesh.create_graph_file(self.create_partiton_fname(name, 
                                                                       mesh, 
                                                                       output=self.output))
