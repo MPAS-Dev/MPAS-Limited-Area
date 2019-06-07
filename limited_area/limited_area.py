@@ -364,6 +364,12 @@ class LimitedArea():
             boundaryCells.append(mesh.nearest_cell(points[i],
                                                    points[i + 1]))
 
+        # When using a method that automatically generates points,
+        # we need to remove any duplicated boundaryCells
+        boundaryCells = np.array(boundaryCells)
+        _, idx = np.unique(boundaryCells, return_index=True)
+        boundaryCells = boundaryCells[np.sort(idx)]
+
         # Find the nearest cell to the inside point
         inCell = mesh.nearest_cell(inPoint[0], inPoint[1])
 

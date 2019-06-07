@@ -7,9 +7,13 @@ import numpy as np
 
 from limited_area.shape_reader import ShapeReader
 from limited_area.points import PointsParser
+from limited_area.mesh import latlon_to_xyz, xyz_to_latlon
+from limited_area.mesh import rotate_about_vector
 import numpy as np
 
 NOT_IMPLEMENTED_ERROR = "IS NOT IMPLEMENTED - YOU SHOULD IMPLENTED IT!"
+
+EARTH_RADIUS = 6371229 # Meters
 
 """ region_spec.py - Provide a number of operations for defining a 
 region. """
@@ -112,6 +116,9 @@ class RegionSpec:
 
         if self.method == 'POINTS':
             if self.type == 'custom':
+                if self._DEBUG_ > 1:
+                    print("DEBUG: Using the circle method for generating a region")
+
                 self.points = np.array(self.points)
 
                 # Convert the points to radians and set them to be between
@@ -129,21 +136,78 @@ class RegionSpec:
             elif self.type == 'square':
                 return self.square()
             elif self.type == 'circle':
-                return self.circle()
+                if self._DEBUG_ > 1:
+                    print("DEBUG: Using the circle method for region generation")
+
+                self.in_point[0], self.in_point[1] = normalize_cords(
+                                                        self.in_point[0],
+                                                        self.in_point[1])
+
+                # Convert to meters, then divide by radius to get radius upon sphere w/ r = 1
+                self.radius = (self.radius * 1000) / EARTH_RADIUS
+                self.points = self.circle(self.in_point[0], self.in_point[1], self.radius)
+
+                return self.name, self.in_point, self.points.flatten()
+
             elif self.type == 'ellipse':
                 return self.ellipse()
 
 
-    def circle(self):
-        """ """
-        raise NotImplementedError("CIRCLE FUCTION "+NOT_IMPLEMENTED_ERROR)
+
+    def circle(self, center_lat, center_lon, radius):
+        """ Return a list of latitude and longitude points in degrees that
+        area radius away from (center_lat, center_lon)
+
+        center_lat - Circle center latitude in radians
+        center_lon - Circle center longitude in radians
+        radius     - Radius of desire circle in radians upon the unit shpere
+
+        """
+
+        P = []
+
+        if self._DEBUG_ > 2:
+            print("DEBUG: center_lat: ", center_lat,
+                        " center_lon: ", center_lon,
+                        " radius: ", radius)
+
+
+        C = latlon_to_xyz(center_lat, center_lon, 1.0)
+
+        # Find a point not equal to C or -C
+        K = np.zeros(3)
+
+        if C[1] == 0.0 and C[1] == 0.0:
+            K[0] = 0.0
+            K[1] = 1.0
+            K[2] = 0.0
+        else:
+            K[0] = 1.0
+            K[1] = 0.0
+            K[2] = 0.0
+
+        # S is then a vector orthogonal to C
+        S = np.cross(C, K)
+
+        P0 = rotate_about_vector(C, S, radius)
+
+        for r in np.linspace(0.0, 2.0*np.pi, 100):
+            P.append(rotate_about_vector(P0, C, r))
+
+        ll = []
+        # TODO: The efficency here can be improved for memory
+        # and probably comp time
+        for i in range(len(P)):
+            ll.append(xyz_to_latlon(P[i])) # Convert back to latlon
+
+        return np.array(ll)
+
 
     def square(self):
         """ """
         raise NotImplementedError("SQAURE FUNCITON "+NOT_IMPLEMENTED_ERROR)
 
+
     def ellipse(self):
         """ """
         raise NotImplementedError("ELLIPSE FUNCITON "+NOT_IMPLEMENTED_ERROR)
-
-

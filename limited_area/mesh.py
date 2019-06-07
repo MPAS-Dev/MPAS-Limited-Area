@@ -292,7 +292,6 @@ class MeshHandler:
                 region.mesh.variables[var][:] = arrTemp[var]
 
 
-
         return region
 
     def copy_global_attributes(self, region):
@@ -331,6 +330,41 @@ def latlon_to_xyz(lat, lon, radius):
     return np.array([x, y, z])
 
 
+def xyz_to_latlon(point):
+    x = point[0]
+    y = point[1]
+    z = point[2]
+
+    eps = float(1.0e-10)
+    lat = np.arcsin(z)
+
+    if np.fabs(x) > eps:
+        if np.fabs(y) > eps:
+            lon = np.arctan(np.fabs(y/x))
+
+            if x <= 0.0 and y >= 0.0:
+                lon = np.pi - lon
+            elif x <= 0.0 and y <= 0.0:
+                lon = lon + np.pi
+            elif x >= 0.0 and y <= 0.0:
+                lon = 2.0 * np.pi - lon
+        else:
+            if x > 0.0:
+                lon = 0.0
+            else:
+                lon = np.pi
+
+    elif np.fabs(y) > eps:
+        if y > 0.0:
+            lon = 0.5 * np.pi
+        else:
+            lon = 1.5 * np.pi
+    else:
+        lon = 0.0
+
+    return lat, lon
+
+
 def sphere_distance(lat1, lon1, lat2, lon2, radius, **kwargs):
     """ Calculate the sphere distance between point1 and point2. 
 
@@ -347,3 +381,34 @@ def sphere_distance(lat1, lon1, lat2, lon2, radius, **kwargs):
                        + np.cos(lat1) 
                        * np.cos(lat2) 
                        * np.sin(0.5 * (lon2 - lon1))**2)))
+
+
+def rotate_about_vector(X, U, theta):
+   """  Rotates the point X through an angle theta about the vector
+   originating at U and having direction (u, v, w).
+
+   X - [x, y, z] - The point to be roated
+   U - [u, v, w] - The point to rotate X around
+   theta - The angle to rotate X around U
+
+   Reference: https://sites.google.com/site/glennmurray/Home/rotation-matrices-and-formulas/rotation-about-an-arbitrary-axis-in-3-dimensions
+   """
+
+   x = X[0]
+   y = X[1]
+   z = X[2]
+
+   u = U[0]
+   v = U[1]
+   w = U[2]
+
+   vw2 = v*v + w*w
+   uw2 = u*u + w*w
+   uv2 = u*u + v*v
+   m = np.sqrt(u*u + v*v + w*w)
+
+   xp = (u*(u*x+v*y+w*z) + (x*vw2+u*(v*y-w*z))*np.cos(theta) + m*(-w*y+v*z)*np.sin(theta))/(m*m)
+   yp = (v*(u*x+v*y+w*z) + (y*uw2+v*(u*x-w*z))*np.cos(theta) + m*( w*x-u*z)*np.sin(theta))/(m*m)
+   zp = (w*(u*x+v*y+w*z) + (z*uv2+w*(u*x-v*y))*np.cos(theta) + m*(-v*x+u*y)*np.sin(theta))/(m*m)
+
+   return np.array([xp, yp, zp])

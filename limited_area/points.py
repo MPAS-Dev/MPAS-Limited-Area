@@ -101,6 +101,8 @@ def PointsParser(self, file, *args, **kwargs):
 
                     self.in_point = [float(rhs.split(',')[0]),
                                      float(rhs.split(',')[1])]
+            elif lhs == 'Radius' or lhs == 'radius':
+                self.radius = float(rhs)
 
         elif line == 'keyword': # Then we have a keyword option
             pass
