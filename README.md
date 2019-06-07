@@ -25,6 +25,12 @@ Usage: create_region [-h] [-o OUTPUT] [-a ALGORITHM] [-v VERBOSE]
 create_region: error: the following arguments are required: points, grid
 ```
 
+**Note**: It may be necessary to install the dependencies for this
+program if they have not been currently installed by you, or your administrator.
+You can install all the dependencies for this repository by running  
+`pip install -r requirements.txt`. This will install all the necessary 
+dependencies needed to run this program.
+
 
 # Running<a name="Running"/>
 
