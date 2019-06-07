@@ -20,7 +20,6 @@ class LimitedArea():
                  mesh_files,
                  region,
                  regionFormat='points',
-                 algorithm='follow',
                  *args,
                  **kwargs):
         """ Init function for Limited Area
@@ -41,8 +40,6 @@ class LimitedArea():
         Named Args TODO: Look up the format to do this
         DEBUG         -- Debug value used to turn on debug output, default == 0
         output        -- Optional name to append to regional mesh filename
-        algorithm     -- Algorithm choice for connecting boundary points. Default
-                         is follow the line
         markNeighbors -- Algorithm choice for choosing relaxation layers - Default
                          is mark neighbor serach
         """ 
@@ -50,7 +47,6 @@ class LimitedArea():
 
         # Keyword arguments
         self._DEBUG_ = kwargs.get('DEBUG', 0)
-        self.algorithm = kwargs.get('algorithm', 'follow')
         self.boundary = kwargs.get('markNeighbors', 'search')
         self.output = kwargs.get('output', "")
 
@@ -83,10 +79,6 @@ class LimitedArea():
             raise NotImplementedError("REGION SPEC IS NOT IMPLMENTED "
                                       "- IMPEMTED IT!")
 
-        # Choose the algorithm to choose boundary points
-        if self.algorithm == 'follow':
-            self.mark_boundry = self.follow_the_line
-
         # Choose the algorithm to mark relaxation region
         if self.boundary == None:
             # Possibly faster for larger regions
@@ -115,9 +107,9 @@ class LimitedArea():
 
             # Mark the boundary cells
             print('Marking boundary cells ...')
-            bdyMaskCell, globalBdyCellsIDs, inCell = self.mark_boundry(mesh, 
-                                                                       inPoint, 
-                                                                       points)
+            bdyMaskCell, globalBdyCellsIDs, inCell = self.mark_boundary(mesh,
+                                                                        inPoint,
+                                                                        points)
             # Flood fill from the inside point 
             print('Filling region ...')
             bdyMaskCell = self.flood_fill(mesh, inCell, bdyMaskCell)
@@ -337,7 +329,7 @@ class LimitedArea():
     
 
     # Mark Boundary points
-    def follow_the_line(self, mesh, inPoint, points, *args, **kwargs):
+    def mark_boundary(self, mesh, inPoint, points, *args, **kwargs):
         """ Mark the nearest cell to each of the cords in points
         as a boundary cell.
 
