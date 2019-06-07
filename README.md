@@ -143,7 +143,7 @@ radius: 4000
 
 # To Do
 
-1. Test a region that is around the equator
+1. ~~Test a region that is around the equator~~ - All good!
 2. Test a region that is straddles the dateline
 3. Test regions that surrounds each pole
 4. Set the NetCDF output of the region to be NetCDF5
