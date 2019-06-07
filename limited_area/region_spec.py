@@ -116,7 +116,7 @@ class RegionSpec:
 
         if self.method == 'POINTS':
             if self.type == 'custom':
-                if self._DEBUG_ > 1:
+                if self._DEBUG_ > 0:
                     print("DEBUG: Using the circle method for generating a region")
 
                 self.points = np.array(self.points)
@@ -136,7 +136,7 @@ class RegionSpec:
             elif self.type == 'square':
                 return self.square()
             elif self.type == 'circle':
-                if self._DEBUG_ > 1:
+                if self._DEBUG_ > 0:
                     print("DEBUG: Using the circle method for region generation")
 
                 self.in_point[0], self.in_point[1] = normalize_cords(
@@ -166,7 +166,7 @@ class RegionSpec:
 
         P = []
 
-        if self._DEBUG_ > 2:
+        if self._DEBUG_ > 1:
             print("DEBUG: center_lat: ", center_lat,
                         " center_lon: ", center_lon,
                         " radius: ", radius)

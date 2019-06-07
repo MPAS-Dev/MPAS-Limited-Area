@@ -58,9 +58,6 @@ class LimitedArea():
         for mesh in mesh_files:
             if os.path.isfile(mesh):
                 self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
-
-                if self._DEBUG_ > 0:
-                    print("DEBUG: ", mesh, " is a valid NetCDF File\n")
             else:
                 print("ERROR: Mesh file was not found", mesh)
                 sys.exit(-1)
@@ -92,13 +89,13 @@ class LimitedArea():
         """ Generate the boundary region of the given region for the given mesh(es). """
 
         # Call the regionSpec to generate `name, in_point, points`
-        name, inPoint, points = self.regionSpec.gen_spec(self.region_file)
+        name, inPoint, points = self.regionSpec.gen_spec(self.region_file, **kwargs)
 
         if self._DEBUG_ > 0:
             print("DEBUG: Region Spec has been generated")
-            print("DEBUG: Name: ", name)
-            print("DEBUG: in_point: ", inPoint)
-            print("DEBUG: points: ", points)
+            print("DEBUG: Region Name: ", name)
+            print("DEBUG: In Point: ", inPoint)
+            print("DEBUG: # of points: ", len(points))
 
         # For each mesh, create a regional mesh and save it
         for mesh in self.meshes:
@@ -280,17 +277,18 @@ class LimitedArea():
             else:
                 bdyMaskEdge[i] = np.min(bdyMaskCell[cells - 1])
 
-        if self._DEBUG_ > 0:
-            print("bdyMaskEdges count:")
-            print("0: ", len(bdyMaskEdge[bdyMaskEdge == 0]))
-            print("1: ", len(bdyMaskEdge[bdyMaskEdge == 1]))
-            print("2: ", len(bdyMaskEdge[bdyMaskEdge == 2]))
-            print("3: ", len(bdyMaskEdge[bdyMaskEdge == 3]))
-            print("4: ", len(bdyMaskEdge[bdyMaskEdge == 4]))
-            print("5: ", len(bdyMaskEdge[bdyMaskEdge == 5]))
-            print("6: ", len(bdyMaskEdge[bdyMaskEdge == 6]))
-            print("7: ", len(bdyMaskEdge[bdyMaskEdge == 7]))
-            print("8: ", len(bdyMaskEdge[bdyMaskEdge == 8]))
+        if self._DEBUG_ > 2:
+            print("DEBUG: bdyMaskEdges count:")
+            print("DEBUG: 0: ", len(bdyMaskEdge[bdyMaskEdge == 0]))
+            print("DEBUG: 1: ", len(bdyMaskEdge[bdyMaskEdge == 1]))
+            print("DEBUG: 2: ", len(bdyMaskEdge[bdyMaskEdge == 2]))
+            print("DEBUG: 3: ", len(bdyMaskEdge[bdyMaskEdge == 3]))
+            print("DEBUG: 4: ", len(bdyMaskEdge[bdyMaskEdge == 4]))
+            print("DEBUG: 5: ", len(bdyMaskEdge[bdyMaskEdge == 5]))
+            print("DEBUG: 6: ", len(bdyMaskEdge[bdyMaskEdge == 6]))
+            print("DEBUG: 7: ", len(bdyMaskEdge[bdyMaskEdge == 7]))
+            print("DEBUG: 8: ", len(bdyMaskEdge[bdyMaskEdge == 8]))
+            print('\n')
 
         return bdyMaskEdge
 
@@ -313,17 +311,18 @@ class LimitedArea():
             else:
                 bdyMaskVertex[i] = np.min(bdyMaskCell[cells - 1])
 
-        if self._DEBUG_ > 0:
-            print("bdyMaskVertex count:")
-            print("0: ", len(bdyMaskVertex[bdyMaskVertex == 0]))
-            print("1: ", len(bdyMaskVertex[bdyMaskVertex == 1]))
-            print("2: ", len(bdyMaskVertex[bdyMaskVertex == 2]))
-            print("3: ", len(bdyMaskVertex[bdyMaskVertex == 3]))
-            print("4: ", len(bdyMaskVertex[bdyMaskVertex == 4]))
-            print("5: ", len(bdyMaskVertex[bdyMaskVertex == 5]))
-            print("6: ", len(bdyMaskVertex[bdyMaskVertex == 6]))
-            print("7: ", len(bdyMaskVertex[bdyMaskVertex == 7]))
-            print("8: ", len(bdyMaskVertex[bdyMaskVertex == 8]))
+        if self._DEBUG_ > 2:
+            print("DEBUG: bdyMaskVertex count:")
+            print("DEBUG: 0: ", len(bdyMaskVertex[bdyMaskVertex == 0]))
+            print("DEBUG: 1: ", len(bdyMaskVertex[bdyMaskVertex == 1]))
+            print("DEBUG: 2: ", len(bdyMaskVertex[bdyMaskVertex == 2]))
+            print("DEBUG: 3: ", len(bdyMaskVertex[bdyMaskVertex == 3]))
+            print("DEBUG: 4: ", len(bdyMaskVertex[bdyMaskVertex == 4]))
+            print("DEBUG: 5: ", len(bdyMaskVertex[bdyMaskVertex == 5]))
+            print("DEBUG: 6: ", len(bdyMaskVertex[bdyMaskVertex == 6]))
+            print("DEBUG: 7: ", len(bdyMaskVertex[bdyMaskVertex == 7]))
+            print("DEBUG: 8: ", len(bdyMaskVertex[bdyMaskVertex == 8]))
+            print('\n')
 
         return bdyMaskVertex
     
@@ -366,9 +365,8 @@ class LimitedArea():
         inCell = mesh.nearest_cell(inPoint[0], inPoint[1])
 
         if self._DEBUG_ > 0:
-            print("DEBUG: Boundary Cells: ", boundaryCells)
-            print("DEBUG: Inside point: ", inCell)
-            print("DEBUG: Sphere Radius: ", sphere_radius)
+            print("DEBUG: Num Boundary Cells: ", len(boundaryCells))
+            print("DEBUG: Inside Cell: ", inCell)
 
         # Create the bdyMask fields
         bdyMaskCell = np.full(nCells, self.UNMARKED)

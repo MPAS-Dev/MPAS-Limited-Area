@@ -208,6 +208,11 @@ class MeshHandler:
         glbBdyVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
 
 
+        if self._DEBUG_ > 0:
+            print("DEBUG: nCells of new region: ", len(glbBdyCellIDs))
+            print("DEBUG: nEdges of new region: ", len(glbBdyEdgeIDs))
+            print("DEBUG: nVertex of new region: ", len(glbBdyVertexIDs))
+
         # Check to see the user didn't mess specifying the region. If 
         # len(bdyIndexToCellIDs) == nCells, then the specification was probably not
         # specified correctly
