@@ -41,13 +41,41 @@ MPAS NetCDF grid file. You'll find example points file in the points-example
 directory within the docs directory of this repository and below in the *Points
 Syntax* section.
 
-# Points Syntax<a name="Points">
+# Points (pts) Syntax<a name="Points">
 
+A number of pts syntax files are available in `docs/points-examples`.
 
 The points syntax is a simple file format that can be used to specify a region.
 In the future there will be a number of ways to specify different shapes with
 the points syntax including, squares, circles, and ellipses, but currently the
-method is the polygon method.
+only methods supported are the polygon and circle method.
+
+Each method will differ slightly in the syntax used to describe a region, but a
+number of keywords will be required by each method.
+
+Each pts file will need to specify the following keywords followed by an
+appropriate value:
+
+ 1. `Name:` - The desired name of your region. The specified keyword will be
+              appended to the outputed region.
+ 2. `Type:` - The method for generating the region [custom/circle]
+ 3. `Point: `- A latitude, longitude coordinate separated by a comma of a point
+               that is inside the desired region. **Note**: For the circle
+               method, this point will be used as the center of the circle.
+
+
+The value after `Name:` will be the name of the new regional mesh. 
+
+If the `Name` within the pts file was set to be the following:
+```
+Name: region_name
+```
+
+Then the resulting regional MPAS grid will be named the following:
+`region_name.10242.grid.nc` if the region was created from the
+`x1.10242.grid.nc`.
+
+## Polygon
 
 A polygon points file would look like the following:
 ```
@@ -61,10 +89,6 @@ lat3, lon3
 latN, LonN
 ```
 
-Where the value after `Name:` will be the name of the new regional mesh. The
-regional filename will follow the convention: `region_name.10242.grid.nc` if
-the region was created from the `x1.10242.grid.nc`.
-
 For the polygon method, the value of `Type:` must be specified as `custom`.
 The value of `Point:` must be a latitude, longitude point within the desired
 region in degrees.
@@ -72,8 +96,6 @@ region in degrees.
 After the `Point` specification, any number of coordinate points (in degrees)
 that define the desired boundary can be listed. Points should be listed in
 counter-clockwise order.
-
-## CONUS Points Example
 
 An example polygon method for defining CONUS region (`conus.custom.pts`):
 ```
@@ -85,3 +107,41 @@ Point: 40.0, -100.0
 20.0, -65.0
 20.0, -129.0
 ```
+
+
+## Circle
+
+The circle method produces a regional circle subset of a global grid given a
+center point (`Point`) and a radius from that point (`Radius`).
+
+An example circle points specification would look like the following:
+```
+Name: my_circle
+Type: circle
+Point: -40.0, 105.5
+Radius: 3000
+```
+
+Here `Point` is used to specify the center of the circle and `Radius` is used
+to specify the radius of the circle (in kilometers). **NOTE**: The radius must
+be larger then at least the smallest grid cell, else unexpected behavior will
+occur.
+
+An example circle method for defining a circle around Boulder, Colorado is:
+```
+Name: boulder
+Type: circle
+Point: 40.0, 105.5
+radius: 4000
+```
+
+# To Do
+
+1. Test a region that is around the equator
+2. Test a region that is straddles the dateline
+3. Test regions that surrounds each pole
+4. Set the NetCDF output of the region to be NetCDF5
+5. Speed up marking `BdyMaskVertex` and `bdyMaskEdge`
+
+
+
