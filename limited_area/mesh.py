@@ -113,9 +113,9 @@ class MeshHandler:
     
         if self._DEBUG_ > 3:
             print("DEBUG: nearest_cell latLon: ", nearest_cell, '\t',
-                                                  latCells[nearest_cell],
-                                                  lonCells[nearest_cell],
-                  ' Given lat lon: ', lat, lon)
+                                                  latCells[nearest_cell] * (180.0/np.pi),
+                                                  lonCells[nearest_cell] * (180.0/np.pi),
+                  ' Given lat lon: ', lat * (180.0/np.pi), lon * (180.0/np.pi))
 
 
         return nearest_cell
@@ -216,7 +216,8 @@ class MeshHandler:
         # Check to see the user didn't mess specifying the region. If 
         # len(bdyIndexToCellIDs) == nCells, then the specification was probably not
         # specified correctly
-        if len(glbBdyCellIDs) == nCells:
+        force = False
+        if len(glbBdyCellIDs) == nCells and not force:
             print("ERROR: The number of Cells in the specified region ",
                   "(", len(glbBdyCellIDs), ")")
             print("ERROR: appears to be equal number of cells in the global mesh",
