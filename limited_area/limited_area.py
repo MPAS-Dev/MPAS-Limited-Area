@@ -118,6 +118,19 @@ class LimitedArea():
                 self.mark_neighbors(mesh, layer, bdyMaskCell, inCell=inCell)
             print('DONE!')
 
+            if self._DEBUG_ > 2:
+                print("DEBUG: bdyMaskCells count:")
+                print("DEBUG: 0: ", len(bdyMaskCell[bdyMaskCell == 0]))
+                print("DEBUG: 1: ", len(bdyMaskCell[bdyMaskCell == 1]))
+                print("DEBUG: 2: ", len(bdyMaskCell[bdyMaskCell == 2]))
+                print("DEBUG: 3: ", len(bdyMaskCell[bdyMaskCell == 3]))
+                print("DEBUG: 4: ", len(bdyMaskCell[bdyMaskCell == 4]))
+                print("DEBUG: 5: ", len(bdyMaskCell[bdyMaskCell == 5]))
+                print("DEBUG: 6: ", len(bdyMaskCell[bdyMaskCell == 6]))
+                print("DEBUG: 7: ", len(bdyMaskCell[bdyMaskCell == 7]))
+                print("DEBUG: 8: ", len(bdyMaskCell[bdyMaskCell == 8]))
+                print('\n')
+
             bdyMaskCell_cp = bdyMaskCell
 
             # Mark the edges
