@@ -37,9 +37,6 @@ def normalize_cords(lat, lon):
     lat *= np.pi / 180.0
     lon *= np.pi / 180.0
 
-    if lon < 0:
-        lon += 2 * np.pi
-
     return lat, lon
 
 
@@ -117,7 +114,7 @@ class RegionSpec:
         if self.method == 'POINTS':
             if self.type == 'custom':
                 if self._DEBUG_ > 0:
-                    print("DEBUG: Using the circle method for generating a region")
+                    print("DEBUG: Using a custom poloygon for generating a region")
 
                 self.points = np.array(self.points)
 
