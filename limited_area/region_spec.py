@@ -173,16 +173,15 @@ class RegionSpec:
 
         # Find a point not equal to C or -C
         K = np.zeros(3)
-        eps = 0.1
+        K[0] = 1
+        K[1] = 0
+        K[2] = 0
 
-        if ((C[0] >= eps or C[0] <= eps) and (C[1] >= eps or C[0] <= eps)):
-            K[0] = 0.0
-            K[1] = 1.0
-            K[2] = 0.0
-        else:
-            K[0] = 1.0
-            K[1] = 0.0
-            K[2] = 0.0
+        if abs(np.dot(K,C)) >= 0.9:
+            K[0] = 0
+            K[1] = 1
+            K[2] = 0
+
 
         # S is then a vector orthogonal to C
         S = np.cross(C, K)
