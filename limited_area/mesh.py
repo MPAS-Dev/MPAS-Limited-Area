@@ -330,7 +330,7 @@ def latlon_to_xyz(lat, lon, radius):
     radius - Radius of sphere
     """
     z = radius * np.sin(lat)
-    x = radius * np.cos(lon)
+    x = radius * np.cos(lon) * np.cos(lat)
     y = radius * np.sin(lon) * np.cos(lat)
 
     return np.array([x, y, z])
