@@ -141,6 +141,10 @@ Point: 40.0, 105.5
 radius: 4000
 ```
 
+# Reporting Bugs
+
+If you encounter a bug and wish to report it, please do so on this Github repository's Issues page! Thank you!
+
 # To Do
 
 1. ~~Test a region that is around the equator~~ - All good!
