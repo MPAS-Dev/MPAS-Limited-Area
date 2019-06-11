@@ -396,6 +396,11 @@ class LimitedArea():
             sourceCell = boundaryCells[i]
             targetCell = boundaryCells[(i + 1) % len(boundaryCells)]
 
+            # If we are already at the next target cell, there is no need
+            # to connect sourceCell with targetCell, and we can skip to
+            # the next pair of boundary points
+            if sourceCell == targetCell:
+                continue
 
             pta = latlon_to_xyz(latCell[sourceCell], 
                                 lonCell[sourceCell], 
