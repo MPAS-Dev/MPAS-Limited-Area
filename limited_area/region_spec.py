@@ -185,6 +185,7 @@ class RegionSpec:
 
         # S is then a vector orthogonal to C
         S = np.cross(C, K)
+        S = S / np.linalg.norm(S)
 
         P0 = rotate_about_vector(C, S, radius)
 

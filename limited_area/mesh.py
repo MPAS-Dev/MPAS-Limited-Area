@@ -390,10 +390,9 @@ def sphere_distance(lat1, lon1, lat2, lon2, radius, **kwargs):
 
 
 def rotate_about_vector(X, U, theta):
-   """  Rotates the point X through an angle theta about the vector
-   originating at U and having direction (u, v, w).
+   """  Rotates the point X through an angle theta about the vector U
 
-   X - [x, y, z] - The point to be roated
+   X - [x, y, z] - The point to be rotated
    U - [u, v, w] - The point to rotate X around
    theta - The angle to rotate X around U
 
@@ -413,8 +412,8 @@ def rotate_about_vector(X, U, theta):
    uv2 = u*u + v*v
    m = np.sqrt(u*u + v*v + w*w)
 
-   xp = (u*(u*x+v*y+w*z) + (x*vw2+u*(v*y-w*z))*np.cos(theta) + m*(-w*y+v*z)*np.sin(theta))/(m*m)
-   yp = (v*(u*x+v*y+w*z) + (y*uw2+v*(u*x-w*z))*np.cos(theta) + m*( w*x-u*z)*np.sin(theta))/(m*m)
-   zp = (w*(u*x+v*y+w*z) + (z*uv2+w*(u*x-v*y))*np.cos(theta) + m*(-v*x+u*y)*np.sin(theta))/(m*m)
+   xp = (u*(u*x+v*y+w*z) + (x*vw2+u*(-v*y-w*z))*np.cos(theta) + m*(-w*y+v*z)*np.sin(theta))/(m*m)
+   yp = (v*(u*x+v*y+w*z) + (y*uw2+v*(-u*x-w*z))*np.cos(theta) + m*( w*x-u*z)*np.sin(theta))/(m*m)
+   zp = (w*(u*x+v*y+w*z) + (z*uv2+w*(-u*x-v*y))*np.cos(theta) + m*(-v*x+u*y)*np.sin(theta))/(m*m)
 
    return np.array([xp, yp, zp])
