@@ -137,7 +137,7 @@ An example circle method for defining a circle around Boulder, Colorado is:
 ```
 Name: boulder
 Type: circle
-Point: 40.0, 105.5
+Point: 40.0, -105.5
 radius: 4000
 ```
 
