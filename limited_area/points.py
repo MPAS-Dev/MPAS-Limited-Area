@@ -74,6 +74,10 @@ def PointsParser(self, file, *args, **kwargs):
     for line in self.points_file:
         line_number += 1
 
+        if '#' in line:
+            line = line.split('#')[0]
+            line = line.strip()
+
         if ':' in line:
             lhs = line.split(':')[0]
             rhs = line.split(':')[1]
