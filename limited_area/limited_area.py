@@ -17,7 +17,7 @@ class LimitedArea():
     UNMARKED = 0
 
     def __init__(self,
-                 mesh_files,
+                 mesh_file,
                  region,
                  regionFormat='points',
                  *args,
@@ -43,7 +43,6 @@ class LimitedArea():
         markNeighbors -- Algorithm choice for choosing relaxation layers - Default
                          is mark neighbor serach
         """ 
-        self.meshes = []
 
         # Keyword arguments
         self._DEBUG_ = kwargs.get('DEBUG', 0)
@@ -55,12 +54,11 @@ class LimitedArea():
 
         # Check to see that all of the meshes exists and that they are
         # valid netCDF files.
-        for mesh in mesh_files:
-            if os.path.isfile(mesh):
-                self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
-            else:
-                print("ERROR: Mesh file was not found", mesh)
-                sys.exit(-1)
+        if os.path.isfile(mesh_file):
+            self.mesh = MeshHandler(mesh_file, 'r', *args, **kwargs)
+        else:
+            print("ERROR: Mesh file was not found", mesh_file)
+            sys.exit(-1)
 
         # Check to see the points file exists and if it exists, then parse it
         # and see that is is specified correctly!
@@ -98,80 +96,79 @@ class LimitedArea():
             print("DEBUG: # of points: ", len(points))
 
         # For each mesh, create a regional mesh and save it
-        for mesh in self.meshes:
+        print('\n')
+        print('Creating a regional mesh of ', self.mesh.fname)
+
+        # Mark the boundary cells
+        print('Marking boundary cells ...')
+        bdyMaskCell, globalBdyCellsIDs, inCell = self.mark_boundary(self.mesh,
+                                                                    inPoint,
+                                                                    points)
+        # Flood fill from the inside point
+        print('Filling region ...')
+        bdyMaskCell = self.flood_fill(self.mesh, inCell, bdyMaskCell)
+
+        # Mark the neighbors
+        print('Creating boundary laryer:', end=' '); sys.stdout.flush()
+        for layer in range(1, self.num_boundary_layers + 1):
+            print(layer, ' ...', end=' '); sys.stdout.flush()
+            self.mark_neighbors(self.mesh, layer, bdyMaskCell, inCell=inCell)
+        print('DONE!')
+
+        if self._DEBUG_ > 2:
+            print("DEBUG: bdyMaskCells count:")
+            print("DEBUG: 0: ", len(bdyMaskCell[bdyMaskCell == 0]))
+            print("DEBUG: 1: ", len(bdyMaskCell[bdyMaskCell == 1]))
+            print("DEBUG: 2: ", len(bdyMaskCell[bdyMaskCell == 2]))
+            print("DEBUG: 3: ", len(bdyMaskCell[bdyMaskCell == 3]))
+            print("DEBUG: 4: ", len(bdyMaskCell[bdyMaskCell == 4]))
+            print("DEBUG: 5: ", len(bdyMaskCell[bdyMaskCell == 5]))
+            print("DEBUG: 6: ", len(bdyMaskCell[bdyMaskCell == 6]))
+            print("DEBUG: 7: ", len(bdyMaskCell[bdyMaskCell == 7]))
+            print("DEBUG: 8: ", len(bdyMaskCell[bdyMaskCell == 8]))
             print('\n')
-            print('Creating a regional mesh of ', mesh.fname)
 
-            # Mark the boundary cells
-            print('Marking boundary cells ...')
-            bdyMaskCell, globalBdyCellsIDs, inCell = self.mark_boundary(mesh,
-                                                                        inPoint,
-                                                                        points)
-            # Flood fill from the inside point 
-            print('Filling region ...')
-            bdyMaskCell = self.flood_fill(mesh, inCell, bdyMaskCell)
+        bdyMaskCell_cp = bdyMaskCell
 
-            # Mark the neighbors
-            print('Creating boundary laryer:', end=' '); sys.stdout.flush()
-            for layer in range(1, self.num_boundary_layers + 1):
-                print(layer, ' ...', end=' '); sys.stdout.flush()
-                self.mark_neighbors(mesh, layer, bdyMaskCell, inCell=inCell)
-            print('DONE!')
+        # Mark the edges
+        print('Markin region edges ...')
+        bdyMaskEdge = self.mark_edges(self.mesh,
+                                      bdyMaskCell,
+                                      *args,
+                                      **kwargs)
 
-            if self._DEBUG_ > 2:
-                print("DEBUG: bdyMaskCells count:")
-                print("DEBUG: 0: ", len(bdyMaskCell[bdyMaskCell == 0]))
-                print("DEBUG: 1: ", len(bdyMaskCell[bdyMaskCell == 1]))
-                print("DEBUG: 2: ", len(bdyMaskCell[bdyMaskCell == 2]))
-                print("DEBUG: 3: ", len(bdyMaskCell[bdyMaskCell == 3]))
-                print("DEBUG: 4: ", len(bdyMaskCell[bdyMaskCell == 4]))
-                print("DEBUG: 5: ", len(bdyMaskCell[bdyMaskCell == 5]))
-                print("DEBUG: 6: ", len(bdyMaskCell[bdyMaskCell == 6]))
-                print("DEBUG: 7: ", len(bdyMaskCell[bdyMaskCell == 7]))
-                print("DEBUG: 8: ", len(bdyMaskCell[bdyMaskCell == 8]))
-                print('\n')
+        # Mark the verticies
+        print('Markin region verteices...')
+        bdyMaskVertex = self.mark_vertices(self.mesh,
+                                           bdyMaskCell,
+                                           *args,
+                                           **kwargs)
 
-            bdyMaskCell_cp = bdyMaskCell
 
-            # Mark the edges
-            print('Markin region edges ...')
-            bdyMaskEdge = self.mark_edges(mesh, 
-                                          bdyMaskCell, 
-                                          *args, 
+        # Subset the grid into a new region:
+        print('Subseting mesh fields into the specified region mesh...')
+        regionFname = self.create_regional_fname(name, self.mesh, output=self.output)
+        regionalMesh = self.mesh.subset_fields(regionFname,
+                                          bdyMaskCell,
+                                          bdyMaskEdge,
+                                          bdyMaskVertex,
+                                          inside=self.INSIDE,
+                                          unmarked=self.UNMARKED,
+                                          *args,
                                           **kwargs)
 
-            # Mark the verticies
-            print('Markin region verteices...')
-            bdyMaskVertex = self.mark_vertices(mesh, 
-                                               bdyMaskCell, 
-                                               *args,
-                                               **kwargs)
+        print('Copying global attributes...')
+        self.mesh.copy_global_attributes(regionalMesh)
 
+        print("Created a regional mesh: ", regionFname)
 
-            # Subset the grid into a new region:
-            print('Subseting mesh fields into the specified region mesh...')
-            regionFname = self.create_regional_fname(name, mesh, output=self.output)
-            regionalMesh = mesh.subset_fields(regionFname,
-                                              bdyMaskCell,
-                                              bdyMaskEdge,
-                                              bdyMaskVertex,
-                                              inside=self.INSIDE,
-                                              unmarked=self.UNMARKED,
-                                              *args,
-                                              **kwargs)
+        print('Creating graph partition file...', end=' '); sys.stdout.flush()
+        regionalMesh.create_graph_file(self.create_partiton_fname(name,
+                                                                  self.mesh,
+                                                                  output=self.output))
 
-            print('Copying global attributes...')
-            mesh.copy_global_attributes(regionalMesh)
-
-            print("Created a regional mesh: ", regionFname)
-
-            print('Creating graph partition file...', end=' '); sys.stdout.flush()
-            regionalMesh.create_graph_file(self.create_partiton_fname(name, 
-                                                                      mesh, 
-                                                                      output=self.output))
-
-            mesh.mesh.close()
-            regionalMesh.mesh.close()
+        self.mesh.mesh.close()
+        regionalMesh.mesh.close()
 
     def create_partiton_fname(self, name, mesh, **kwargs):
         """ Generate the filename for the regional graph.info file"""
@@ -189,7 +186,7 @@ class LimitedArea():
         output = kwargs.get('output', None)
 
         if output:
-            return output 
+            return output
         else:
             nCells = mesh.mesh.dimensions['nCells'].size
             return name+'.'+str(nCells)+'.grid.nc'
