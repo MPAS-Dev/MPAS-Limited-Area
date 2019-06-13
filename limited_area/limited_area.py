@@ -277,18 +277,12 @@ class LimitedArea():
         """
         nEdges = mesh.mesh.dimensions['nEdges'].size
         cellsOnEdge = mesh.mesh.variables['cellsOnEdge'][:]
-        bdyMaskEdge = np.zeros(nEdges, dtype=np.dtype('i'))
         np.set_printoptions(threshold=np.inf)
 
-        for i in range(nEdges):
-            cells = cellsOnEdge[i,:]
-            if np.all(bdyMaskCell[cells - 1 ] == 0):
-                bdyMaskEdge[i] = 0
-            elif np.any(bdyMaskCell[cells - 1] == 0):
-                cellMasks = bdyMaskCell[cells - 1]
-                bdyMaskEdge[i] = np.min(cellMasks[cellMasks > 0])
-            else:
-                bdyMaskEdge[i] = np.min(bdyMaskCell[cells - 1])
+        bdyMaskEdge = bdyMaskCell[cellsOnEdge[:,:]-1].min(axis=1)
+        bdyMaskEdge = np.where(bdyMaskEdge > 0,
+                               bdyMaskEdge,
+                               bdyMaskCell[cellsOnEdge[:,:]-1].max(axis=1))
 
         if self._DEBUG_ > 2:
             print("DEBUG: bdyMaskEdges count:")
@@ -312,17 +306,11 @@ class LimitedArea():
         nVertices = mesh.mesh.dimensions['nVertices'].size
         vDegree = mesh.mesh.dimensions['vertexDegree'].size
         cellsOnVertex = mesh.mesh.variables['cellsOnVertex'][:]
-        bdyMaskVertex = np.zeros(nVertices, dtype=np.dtype('i'))
 
-        for i in range(nVertices):
-            cells = cellsOnVertex[i,:]
-            if np.all(bdyMaskCell[cells - 1] == 0):
-                bdyMaskVertex[i] = 0
-            elif np.any(bdyMaskCell[cells - 1] == 0):
-                cellMasks = bdyMaskCell[cells - 1]
-                bdyMaskVertex[i] = np.min(cellMasks[cellMasks > 0])
-            else:
-                bdyMaskVertex[i] = np.min(bdyMaskCell[cells - 1])
+        bdyMaskVertex = bdyMaskCell[cellsOnVertex[:,:]-1].min(axis=1)
+        bdyMaskVertex = np.where(bdyMaskVertex > 0,
+                                 bdyMaskVertex,
+                                 bdyMaskCell[cellsOnVertex[:,:]-1].max(axis=1))
 
         if self._DEBUG_ > 2:
             print("DEBUG: bdyMaskVertex count:")
