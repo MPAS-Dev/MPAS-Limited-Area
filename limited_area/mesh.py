@@ -18,6 +18,7 @@ class MeshHandler:
 
         if mode == 'r':
             if self.check_file(fname):
+                self._load_vars()
                 return
             else:
                 sys.exit(-1)
@@ -58,6 +59,45 @@ class MeshHandler:
             print("ERROR: This file did not exist!")
             return False
 
+    def _load_vars(self):
+        """ Preload variables to avoid multiple, unncessary IO calls """
+        if self._DEBUG_ > 2:
+            print("DEBUG: In Load Vars")
+
+        # Dimensions
+        self.nCells = self.mesh.dimensions['nCells'].size
+        self.nEdges = self.mesh.dimensions['nEdges'].size
+        self.maxEdges = self.mesh.dimensions['maxEdges'].size
+        self.nVertices = self.mesh.dimensions['nVertices'].size
+        self.vertexDegree = self.mesh.dimensions['vertexDegree'].size
+
+        # Variables
+        self.latCells = self.mesh.variables['latCell'][:]
+        self.lonCells = self.mesh.variables['lonCell'][:]
+
+        self.nEdgesOnCell = self.mesh.variables['nEdgesOnCell'][:]
+        self.cellsOnCell = self.mesh.variables['cellsOnCell'][:]
+        self.cellsOnEdge = self.mesh.variables['cellsOnEdge'][:]
+        self.cellsOnVertex = self.mesh.variables['cellsOnVertex'][:]
+
+        self.indexToCellIDs = self.mesh.variables['indexToCellID'][:]
+        self.indexToEdgeIDs = self.mesh.variables['indexToEdgeID'][:]
+        self.indexToVertexIDs = self.mesh.variables['indexToVertexID'][:]
+
+        # Attributes
+        self.sphere_radius = self.mesh.sphere_radius
+
+        self.variables = { 'latCells' : self.latCells,
+                           'lonCells' : self.lonCells,
+                           'nEdgesOnCell' : self.nEdgesOnCell,
+                           'cellsOnCell' : self.cellsOnCell,
+                           'cellsOnEdge' : self.cellsOnEdge,
+                           'cellsOnVertex' : self.cellsOnVertex,
+                           'indexToCellID' : self.indexToCellIDs,
+                           'indexToEdgeID' : self.indexToEdgeIDs,
+                           'indexToVertexID' : self.indexToVertexIDs
+                         }
+
 
     def print_all_dimensions(self):
         """ Print all the dimension names for this mesh"""
@@ -75,36 +115,38 @@ class MeshHandler:
         lat - Latitude - Radians
         lon - Longitude - Radians
         """
-        # We will start at cell 0
-        nCells = self.mesh.dimensions['nCells'].size
-        latCells = np.array(self.mesh.variables['latCell'])
-        lonCells = np.array(self.mesh.variables['lonCell'])
-        nEdgesOnCell = np.array(self.mesh.variables['nEdgesOnCell'])
-        cellsOnCell = np.array(self.mesh.variables['cellsOnCell'])
-        sphere_radius = self.mesh.sphere_radius
+
+        """
+        nCells
+        latCells
+        lonCells
+        nEdgesOnCell
+        cellsOnCell
+        sphere_radius
+        """
 
         nearest_cell = 0 # Start at the first cell
         current_cell = -1
 
         while (nearest_cell != current_cell):
             current_cell = nearest_cell
-            current_distance = sphere_distance(latCells[current_cell],
-                                               lonCells[current_cell],
+            current_distance = sphere_distance(self.latCells[current_cell],
+                                               self.lonCells[current_cell],
                                                lat,
                                                lon,
-                                               sphere_radius)
+                                               self.sphere_radius)
             
             nearest_cell = current_cell
             nearest_distance = current_distance
             
-            for edges in range(nEdgesOnCell[current_cell]):
-                iCell = cellsOnCell[current_cell, edges] - 1
-                if (iCell <= nCells):
-                    iDistance = sphere_distance(latCells[iCell],
-                                                lonCells[iCell],
+            for edges in range(self.nEdgesOnCell[current_cell]):
+                iCell = self.cellsOnCell[current_cell, edges] - 1
+                if (iCell <= self.nCells):
+                    iDistance = sphere_distance(self.latCells[iCell],
+                                                self.lonCells[iCell],
                                                 lat,
                                                 lon,
-                                                sphere_radius)
+                                                self.sphere_radius)
 
                     if (iDistance <= nearest_distance):
                         nearest_cell = iCell
@@ -113,14 +155,19 @@ class MeshHandler:
     
         if self._DEBUG_ > 3:
             print("DEBUG: nearest_cell latLon: ", nearest_cell, '\t',
-                                                  latCells[nearest_cell] * (180.0/np.pi),
-                                                  lonCells[nearest_cell] * (180.0/np.pi),
+                                                  self.latCells[nearest_cell] * (180.0/np.pi),
+                                                  self.lonCells[nearest_cell] * (180.0/np.pi),
                   ' Given lat lon: ', lat * (180.0/np.pi), lon * (180.0/np.pi))
 
 
         return nearest_cell
 
     def create_graph_file(self, graphFname):
+        """ Create a graph.info file for the current mesh """
+
+        # In the limited_area program, this function will always create
+        # a graph.info file for a regional mesh. Thus, the variables here
+        # are not preloaded and are being read from disk
         nCells = self.mesh.dimensions['nCells'].size
         nEdges = self.mesh.dimensions['nEdges'].size
 
@@ -197,15 +244,18 @@ class MeshHandler:
         indexingFields['verticesOnEdge'] = bdyMaskVertex
         indexingFields['edgesOnVertex'] = bdyMaskEdge
         indexingFields['cellsOnVertex'] = bdyMaskCell
-                            
-        nCells = self.mesh.dimensions['nCells'].size
-        indexToCellIDs = self.mesh.variables['indexToCellID'][:]
-        indexToEdgeIDs = self.mesh.variables['indexToEdgeID'][:]
-        indexToVertexIDs = self.mesh.variables['indexToVertexID'][:]
 
-        glbBdyCellIDs = indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
-        glbBdyEdgeIDs = indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
-        glbBdyVertexIDs = indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
+        """
+        nCells
+        indexToCellIDs
+        indexToCellIDs
+        indexToEdgeIDs
+        indexToVertexIDs
+        """
+
+        glbBdyCellIDs = self.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
+        glbBdyEdgeIDs = self.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
+        glbBdyVertexIDs = self.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
 
 
         if self._DEBUG_ > 0:
@@ -217,11 +267,11 @@ class MeshHandler:
         # len(bdyIndexToCellIDs) == nCells, then the specification was probably not
         # specified correctly
         force = False
-        if len(glbBdyCellIDs) == nCells and not force:
+        if len(glbBdyCellIDs) == self.nCells and not force:
             print("ERROR: The number of Cells in the specified region ",
                   "(", len(glbBdyCellIDs), ")")
             print("ERROR: appears to be equal number of cells in the global mesh",
-                  "(", nCells, ")")
+                  "(", self.nCells, ")")
             print("ERROR: which means there was perhaps a problem in specifying the")
             print("ERROR: region. Please insure your region specification is correct")
             sys.exit(-1)
@@ -267,7 +317,10 @@ class MeshHandler:
         # to the regional mesh - reindexing if neccessary
         for var in self.mesh.variables:
             print("Copying variable ", var, "...", end=' ', sep=''); sys.stdout.flush()
-            arrTemp = self.mesh.variables[var][:]
+            if var in self.variables:
+                arrTemp = self.variables[var] # Use the pre-loaded variable if possible
+            else:
+                arrTemp = self.mesh.variables[var][:] # Else, read it from disk
 
             if 'nCells' in self.mesh.variables[var].dimensions:
                 if var in indexingFields:
