@@ -207,14 +207,16 @@ class LimitedArea():
         if inCell == None:
             print("ERROR: In cell not found within _mark_neighbors_search")
 
-        nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
-        cellsOnCell = mesh.mesh.variables['cellsOnCell'][:, :]
+        """
+        nEdgesOnCell
+        cellsOnCell
+        """
 
         stack = [inCell]
         while len(stack) > 0:
             iCell = stack.pop()
-            for i in range(nEdgesOnCell[iCell]):
-                j = cellsOnCell[iCell, i] - 1
+            for i in range(mesh.nEdgesOnCell[iCell]):
+                j = mesh.cellsOnCell[iCell, i] - 1
                 if layer > bdyMaskCell[j] >= self.INSIDE:
                     bdyMaskCell[j] = -bdyMaskCell[j]
                     stack.append(j)
@@ -227,14 +229,16 @@ class LimitedArea():
     # mark_neighbors - Faster for larger regions ??
     def _mark_neighbors(self, mesh, nType, bdyMaskCell, *args, **kwargs):
         """ """
-        nCells = len(bdyMaskCell)
-        nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
-        cellsOnCell = mesh.mesh.variables['cellsOnCell'][:, :]
 
-        for iCell in range(nCells):
+        """
+        nCells
+        nEdgesOnCell
+        cellsOnCell
+        """
+        for iCell in range(mesh.nCells):
             if bdyMaskCell[iCell] == self.UNMARKED:
-                for i in range(nEdgesOnCell[iCell]):
-                    v = cellsOnCell[iCell, i] - 1
+                for i in range(mesh.nEdgesOnCell[iCell]):
+                    v = mesh.cellsOnCell[iCell, i] - 1
                     if bdyMaskCell[v] == 0:
                         bdyMaskCell[v] == nType
 
@@ -250,14 +254,17 @@ class LimitedArea():
         """
         if self._DEBUG_ > 1:
             print("DEBUG: Flood filling with flood_fill!")
-        nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
-        cellsOnCell = mesh.mesh.variables['cellsOnCell'][:, :]
+
+        """
+        nEdgesOnCell
+        cellsOnCell
+        """
 
         stack = [inCell]
         while len(stack) > 0:
             iCell = stack.pop()
-            for i in range(nEdgesOnCell[iCell]):
-                j = cellsOnCell[iCell, i] - 1
+            for i in range(mesh.nEdgesOnCell[iCell]):
+                j = mesh.cellsOnCell[iCell, i] - 1
                 if bdyMaskCell[j] == self.UNMARKED:
                     bdyMaskCell[j] = self.INSIDE
                     stack.append(j)
@@ -272,14 +279,14 @@ class LimitedArea():
         mesh -
         bdyMaskCell -
         """
-        nEdges = mesh.mesh.dimensions['nEdges'].size
-        cellsOnEdge = mesh.mesh.variables['cellsOnEdge'][:]
-        np.set_printoptions(threshold=np.inf)
 
-        bdyMaskEdge = bdyMaskCell[cellsOnEdge[:,:]-1].min(axis=1)
+        """
+        cellsOnEdge
+        """
+        bdyMaskEdge = bdyMaskCell[mesh.cellsOnEdge[:,:]-1].min(axis=1)
         bdyMaskEdge = np.where(bdyMaskEdge > 0,
                                bdyMaskEdge,
-                               bdyMaskCell[cellsOnEdge[:,:]-1].max(axis=1))
+                               bdyMaskCell[mesh.cellsOnEdge[:,:]-1].max(axis=1))
 
         if self._DEBUG_ > 2:
             print("DEBUG: bdyMaskEdges count:")
@@ -300,14 +307,14 @@ class LimitedArea():
     def mark_vertices(self, mesh, bdyMaskCell, *args, **kwargs):
         """ Mark the vertices that are in the spefied region and return
         bdyMaskVertex."""
-        nVertices = mesh.mesh.dimensions['nVertices'].size
-        vDegree = mesh.mesh.dimensions['vertexDegree'].size
-        cellsOnVertex = mesh.mesh.variables['cellsOnVertex'][:]
 
-        bdyMaskVertex = bdyMaskCell[cellsOnVertex[:,:]-1].min(axis=1)
+        """
+        cellsOnVertex
+        """
+        bdyMaskVertex = bdyMaskCell[mesh.cellsOnVertex[:,:]-1].min(axis=1)
         bdyMaskVertex = np.where(bdyMaskVertex > 0,
                                  bdyMaskVertex,
-                                 bdyMaskCell[cellsOnVertex[:,:]-1].max(axis=1))
+                                 bdyMaskCell[mesh.cellsOnVertex[:,:]-1].max(axis=1))
 
         if self._DEBUG_ > 2:
             print("DEBUG: bdyMaskVertex count:")
@@ -335,18 +342,21 @@ class LimitedArea():
         points -
 
         """
-        if self._DEBUG_ > 0: 
+        if self._DEBUG_ > 0:
             print("DEBUG: Marking the boundary points: ")
 
+        """
+        nCells
+        latCell
+        lonCell
+        cellsOnCell
+        maxEdges
+        nEdgesOnCell
+        indexToCellID
+        sphere_radius
+        """
+
         boundaryCells = []
-        nCells = mesh.mesh.dimensions['nCells'].size
-        latCell = mesh.mesh.variables['latCell'][:]
-        lonCell = mesh.mesh.variables['lonCell'][:]
-        cellsOnCell = mesh.mesh.variables['cellsOnCell'][:, :]
-        maxEdges = mesh.mesh.dimensions['maxEdges'].size
-        nEdgesOnCell = mesh.mesh.variables['nEdgesOnCell'][:]
-        indexToCellID = mesh.mesh.variables['indexToCellID'][:]
-        sphere_radius = mesh.mesh.sphere_radius
 
         # Find the nearest cells to the list of given boundary points
         for i in range(0, len(points), 2):
@@ -362,7 +372,7 @@ class LimitedArea():
             print("DEBUG: Inside Cell: ", inCell)
 
         # Create the bdyMask fields
-        bdyMaskCell = np.full(nCells, self.UNMARKED)
+        bdyMaskCell = np.full(mesh.nCells, self.UNMARKED)
 
         # Mark the boundary cells that were given as input
         for bCells in boundaryCells:
@@ -387,12 +397,12 @@ class LimitedArea():
             if sourceCell == targetCell:
                 continue
 
-            pta = latlon_to_xyz(latCell[sourceCell], 
-                                lonCell[sourceCell], 
-                                sphere_radius)
-            ptb = latlon_to_xyz(latCell[targetCell],
-                                lonCell[targetCell],
-                                sphere_radius)
+            pta = latlon_to_xyz(mesh.latCells[sourceCell],
+                                mesh.lonCells[sourceCell],
+                                mesh.sphere_radius)
+            ptb = latlon_to_xyz(mesh.latCells[targetCell],
+                                mesh.lonCells[targetCell],
+                                mesh.sphere_radius)
         
             pta = np.cross(pta, ptb)
             temp = np.linalg.norm(pta)
@@ -401,21 +411,21 @@ class LimitedArea():
             while iCell != targetCell:
                 bdyMaskCell[iCell] = self.INSIDE
                 minangle = np.Infinity
-                mindist = sphere_distance(latCell[iCell], 
-                                          lonCell[iCell],
-                                          latCell[targetCell],
-                                          lonCell[targetCell],
-                                          sphere_radius)
-                for j in range(nEdgesOnCell[iCell]):
-                    v = cellsOnCell[iCell, j] - 1
-                    dist = sphere_distance(latCell[v],
-                                           lonCell[v],
-                                           latCell[targetCell],
-                                           lonCell[targetCell],
-                                           sphere_radius)
+                mindist = sphere_distance(mesh.latCells[iCell],
+                                          mesh.lonCells[iCell],
+                                          mesh.latCells[targetCell],
+                                          mesh.lonCells[targetCell],
+                                          mesh.sphere_radius)
+                for j in range(mesh.nEdgesOnCell[iCell]):
+                    v = mesh.cellsOnCell[iCell, j] - 1
+                    dist = sphere_distance(mesh.latCells[v],
+                                           mesh.lonCells[v],
+                                           mesh.latCells[targetCell],
+                                           mesh.lonCells[targetCell],
+                                           mesh.sphere_radius)
                     if dist > mindist:
                         continue
-                    pt = latlon_to_xyz(latCell[v], lonCell[v], sphere_radius)
+                    pt = latlon_to_xyz(mesh.latCells[v], mesh.lonCells[v], mesh.sphere_radius)
                     angle = np.dot(pta, pt)
                     angle = abs(0.5 * np.pi - np.arccos(angle))
                     if angle < minangle:
@@ -424,6 +434,6 @@ class LimitedArea():
                 iCell = k
 
         return (bdyMaskCell, 
-                indexToCellID[np.where(bdyMaskCell != self.UNMARKED)], 
+                mesh.indexToCellIDs[np.where(bdyMaskCell != self.UNMARKED)],
                 inCell)
 
