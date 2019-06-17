@@ -291,13 +291,8 @@ class MeshHandler:
 
     def copy_global_attributes(self, region):
         """ Copy the global attributes into the regional mesh, but not 'np' """
-        region.mesh.np = region.mesh.dimensions['nCells'].size
-
         region.mesh.on_a_sphere = self.mesh.on_a_sphere
         region.mesh.sphere_radius = self.mesh.sphere_radius
-        region.mesh.n_scvt_iterations = self.mesh.n_scvt_iterations
-        region.mesh.eps = self.mesh.eps
-        region.mesh.Convergence = self.mesh.Convergence
 
 
 def scan(arr):
