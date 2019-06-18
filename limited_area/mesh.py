@@ -348,7 +348,7 @@ class MeshHandler:
                     region.mesh.variables[var][:] = arrTemp[glbBdyVertexIDs]
             else:
                 print('')
-                region.mesh.variables[var][:] = arrTemp[var]
+                region.mesh.variables[var][:] = arrTemp[:]
 
 
         return region
