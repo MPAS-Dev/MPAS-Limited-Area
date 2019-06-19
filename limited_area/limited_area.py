@@ -101,9 +101,11 @@ class LimitedArea():
 
         # Mark the boundary cells
         print('Marking boundary cells ...')
-        bdyMaskCell, globalBdyCellsIDs, inCell = self.mark_boundary(self.mesh,
-                                                                    inPoint,
-                                                                    points)
+        bdyMaskCell, globalBdyCellsIDs = self.mark_boundary(self.mesh, points)
+
+        # Find the nearest cell to the inside point
+        inCell = self.mesh.nearest_cell(inPoint[0], inPoint[1])
+
         # Flood fill from the inside point
         print('Filling region ...')
         bdyMaskCell = self.flood_fill(self.mesh, inCell, bdyMaskCell)
@@ -333,7 +335,7 @@ class LimitedArea():
     
 
     # Mark Boundary points
-    def mark_boundary(self, mesh, inPoint, points, *args, **kwargs):
+    def mark_boundary(self, mesh, points, *args, **kwargs):
         """ Mark the nearest cell to each of the cords in points
         as a boundary cell.
 
@@ -364,12 +366,9 @@ class LimitedArea():
                                                    points[i + 1]))
 
 
-        # Find the nearest cell to the inside point
-        inCell = mesh.nearest_cell(inPoint[0], inPoint[1])
 
         if self._DEBUG_ > 0:
             print("DEBUG: Num Boundary Cells: ", len(boundaryCells))
-            print("DEBUG: Inside Cell: ", inCell)
 
         # Create the bdyMask fields
         bdyMaskCell = np.full(mesh.nCells, self.UNMARKED)
@@ -434,6 +433,6 @@ class LimitedArea():
                 iCell = k
 
         return (bdyMaskCell, 
-                mesh.indexToCellIDs[np.where(bdyMaskCell != self.UNMARKED)],
-                inCell)
+                mesh.indexToCellIDs[np.where(bdyMaskCell != self.UNMARKED)]
+               )
 
