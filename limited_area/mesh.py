@@ -99,16 +99,6 @@ class MeshHandler:
                          }
 
 
-    def print_all_dimensions(self):
-        """ Print all the dimension names for this mesh"""
-        print(self.mesh.dimensions.keys())
-
-
-    def print_all_variables(self):
-        """ Print all the variable names for this mesh"""
-        print(self.mesh.variables.keys())
-
-
     def nearest_cell(self, lat, lon):
         """ Find the nearest cell of this mesh to lat and lon
 
