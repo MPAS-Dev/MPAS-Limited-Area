@@ -178,6 +178,31 @@ Point: 40.0, -105.5
 radius: 4000
 ```
 
-# Reporting Bugs<a name="bugs">
+## Equatorial Channel
+
+The equatorial channel method can be used to specify a channel parallel to the
+equator, across longitudes and between two latitude points.
+
+For instance, one can specify a region between the tropics as:
+
+```
+Name: tropics
+Type: channel
+Upper-lat: 23.43676
+lower-lat: -23.43676
+```
+
+### **Caution on creating channels of `grid.nc` files**
+
+Depending on the location of a specified channel, erroneous results can be
+caused during some interpolation static fields by the init_atmosphere core.
+This will cause erroneous results within result `static.nc` files and will
+cause resulting files to be unusable.
+
+Thus, it is **highly** recommended to only use the channel method upon
+`static.nc` files. Doing so will avoid this problem and will also save time
+interpolating the static fields on different regions.
+
+# Reporting Bugs
 
 If you encounter a bug and wish to report it, please do so on this Github repository's Issues page! Thank you!
