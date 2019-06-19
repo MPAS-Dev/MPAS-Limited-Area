@@ -91,12 +91,8 @@ def PointsParser(self, file, *args, **kwargs):
             elif lhs == 'Type' or lhs == 'type':
                 if rhs == 'Custom' or rhs == 'custom':
                     self.type = 'custom'
-                elif rhs == 'Square' or rhs == 'square':
-                    self.type = 'square'
                 elif rhs == 'Circle' or rhs == 'circle':
                     self.type = 'circle'
-                elif rhs == 'Ellipse' or rhs == 'ellipse':
-                    self.type = 'ellipse'
                 else:
                     print("ERROR: This is not a valid points type: ", rhs)
                     sys.exit(-1)

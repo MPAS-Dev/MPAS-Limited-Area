@@ -19,7 +19,6 @@ class LimitedArea():
     def __init__(self,
                  mesh_file,
                  region,
-                 regionFormat='points',
                  *args,
                  **kwargs):
         """ Init function for Limited Area
@@ -58,17 +57,8 @@ class LimitedArea():
 
         # Check to see the points file exists and if it exists, then parse it
         # and see that is is specified correctly!
-        if os.path.isfile(region):
-            self.region_file = region
-        if regionFormat == 'points':
-            self.regionSpec = RegionSpec(method=regionFormat, *args, **kwargs)
-            self.regionFormat = 'points'
-        elif regionFormat == 'shape' .OR. regionFormat == 'shapeFile':
-            self.regionSpec = RegionSpec(method=regionFormat, *args, **kwargs)
-            self.regionFormat = 'shape'
-        else:
-            raise NotImplementedError("REGION SPEC IS NOT IMPLMENTED "
-                                      "- IMPEMTED IT!")
+        self.region_file = region
+        self.regionSpec = RegionSpec(*args, **kwargs)
 
         # Choose the algorithm to mark relaxation region
         if self.boundary == None:
