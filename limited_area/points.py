@@ -93,6 +93,8 @@ def PointsParser(self, file, *args, **kwargs):
                     self.type = 'custom'
                 elif rhs == 'Square' or rhs == 'square':
                     self.type = 'square'
+                elif rhs == 'Channel' or rhs == 'channel':
+                    self.type = 'channel'
                 elif rhs == 'Circle' or rhs == 'circle':
                     self.type = 'circle'
                 elif rhs == 'Ellipse' or rhs == 'ellipse':
@@ -107,7 +109,10 @@ def PointsParser(self, file, *args, **kwargs):
                                      float(rhs.split(',')[1])]
             elif lhs == 'Radius' or lhs == 'radius':
                 self.radius = float(rhs)
-
+            elif lhs == 'uLat' or lhs == 'Upper Lat' or lhs == 'ulat':
+                self.ulat = float(rhs)
+            elif lhs == 'lLat' or lhs == 'Lower Lat:' or lhs == 'llat':
+                self.llat = float(rhs)
         elif line == 'keyword': # Then we have a keyword option
             pass
         elif ',' in line: # Then we have a coordinate point

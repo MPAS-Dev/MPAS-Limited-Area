@@ -148,8 +148,36 @@ class RegionSpec:
 
             elif self.type == 'ellipse':
                 return self.ellipse()
+            elif self.type == 'channel':
+                if self._DEBUG_ > 0:
+                    print("DEBUG: Using the channel method for region generation")
 
+                if self.ulat == self.llat:
+                    print("ERROR: Upper and lower lattiude for channel specification")
+                    print("ERROR: can not be equal")
+                    print("ERROR: ulat: ", self.ulat)
+                    print("ERROR: llat: ", self.llat)
+                    sys.exit(-1)
 
+                self.ulat, self.llat = normalize_cords(self.ulat, self.llat)
+
+                self.boundaries = []
+
+                upperBdy = np.empty([100, 2])
+                lowerBdy = np.empty([100, 2])
+
+                upperBdy[:,0] = self.ulat
+                upperBdy[:,1] = np.linspace(0.0, 2.0 * np.pi, 100)
+
+                lowerBdy[:,0] = self.llat
+                lowerBdy[:,1] = np.linspace(0.0, 2.0 * np.pi, 100)
+
+                self.in_point = np.array([(self.ulat + self.llat) / 2, 0])
+
+                self.boundaries.append(upperBdy.flatten())
+                self.boundaries.append(lowerBdy.flatten())
+        
+                return self.name, self.in_point, self.boundaries
 
     def circle(self, center_lat, center_lon, radius):
         """ Return a list of latitude and longitude points in degrees that
@@ -209,3 +237,4 @@ class RegionSpec:
     def ellipse(self):
         """ """
         raise NotImplementedError("ELLIPSE FUNCITON "+NOT_IMPLEMENTED_ERROR)
+
