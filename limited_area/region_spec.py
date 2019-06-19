@@ -129,7 +129,7 @@ class RegionSpec:
                                                         self.in_point[0],
                                                         self.in_point[1])
 
-                return self.name, self.in_point, self.points
+                return self.name, self.in_point, [self.points]
             elif self.type == 'square':
                 return self.square()
             elif self.type == 'circle':
@@ -144,7 +144,7 @@ class RegionSpec:
                 self.radius = (self.radius * 1000) / EARTH_RADIUS
                 self.points = self.circle(self.in_point[0], self.in_point[1], self.radius)
 
-                return self.name, self.in_point, self.points.flatten()
+                return self.name, self.in_point, [self.points.flatten()]
 
             elif self.type == 'ellipse':
                 return self.ellipse()
