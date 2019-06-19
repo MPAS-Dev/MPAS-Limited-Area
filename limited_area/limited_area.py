@@ -101,7 +101,7 @@ class LimitedArea():
 
         # Mark the boundary cells
         print('Marking boundary cells ...')
-        bdyMaskCell, globalBdyCellsIDs = self.mark_boundary(self.mesh, points)
+        bdyMaskCell = self.mark_boundary(self.mesh, points)
 
         # Find the nearest cell to the inside point
         inCell = self.mesh.nearest_cell(inPoint[0], inPoint[1])
@@ -432,7 +432,5 @@ class LimitedArea():
                         k = v
                 iCell = k
 
-        return (bdyMaskCell, 
-                mesh.indexToCellIDs[np.where(bdyMaskCell != self.UNMARKED)]
-               )
+        return bdyMaskCell
 
