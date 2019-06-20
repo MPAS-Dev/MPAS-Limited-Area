@@ -104,7 +104,10 @@ class LimitedArea():
         i = 0
         for boundary in boundaries:
             print("boundary ", i, "... ", end=''); sys.stdout.flush(); i += 1
-            bdyMaskCell = self.mark_boundary(self.mesh, boundary)
+            bdyMaskCell = self.mark_boundary(self.mesh, boundary, bdyMaskCell)
+
+        # Find the nearest cell to the inside point
+        inCell = self.mesh.nearest_cell(inPoint[0], inPoint[1])
 
         # Flood fill from the inside point
         print('\nFilling region ...')
@@ -315,7 +318,7 @@ class LimitedArea():
     
 
     # Mark Boundary points
-    def mark_boundary(self, mesh, points, *args, **kwargs):
+    def mark_boundary(self, mesh, points, bdyMaskCell, *args, **kwargs):
         """ Mark the nearest cell to each of the cords in points
         as a boundary cell and return bdyMaskCell.
 
