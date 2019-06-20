@@ -19,6 +19,8 @@ class LimitedArea():
     def __init__(self,
                  mesh_file,
                  region,
+                 regionFormat='points',
+                 format='NETCDF3_64BIT_OFFSET',
                  *args,
                  **kwargs):
         """ Init function for Limited Area
@@ -43,6 +45,7 @@ class LimitedArea():
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.boundary = kwargs.get('markNeighbors', 'search')
         self.output = kwargs.get('output', "")
+        self.cdf_format = format
 
         if self.output is None:
             self.output = ''
@@ -72,8 +75,8 @@ class LimitedArea():
     def gen_region(self, *args, **kwargs):
         """ Generate the boundary region of the given region for the given mesh(es). """
 
-        # Call the regionSpec to generate `name, in_point, points`
-        name, inPoint, points = self.regionSpec.gen_spec(self.region_file, **kwargs)
+        # Call the regionSpec to generate `name, in_point, boundaries`
+        name, inPoint, boundaries= self.regionSpec.gen_spec(self.region_file, **kwargs)
 
         if self._DEBUG_ > 0:
             print("DEBUG: Region Spec has been generated")
@@ -85,15 +88,22 @@ class LimitedArea():
         print('\n')
         print('Creating a regional mesh of ', self.mesh.fname)
 
-        # Mark the boundary cells
-        print('Marking boundary cells ...')
-        bdyMaskCell = self.mark_boundary(self.mesh, points)
+        # Mark boundaries
+        # A specification may have multiple, discontiguous boundaries,
+        # so, create a unmarked, filled bdyMaskCell and pass it to
+        # mark_boundary for each boundary.
+        print('Marking boundary... ', end=''); sys.stdout.flush()
+        bdyMaskCell = np.full(self.mesh.nCells, self.UNMARKED)
+        i = 0
+        for boundary in boundaries:
+            print("boundary ", i, "... ", end=''); sys.stdout.flush(); i += 1
+            bdyMaskCell = self.mark_boundary(self.mesh, boundary, bdyMaskCell)
 
         # Find the nearest cell to the inside point
         inCell = self.mesh.nearest_cell(inPoint[0], inPoint[1])
 
         # Flood fill from the inside point
-        print('Filling region ...')
+        print('\nFilling region ...')
         bdyMaskCell = self.flood_fill(self.mesh, inCell, bdyMaskCell)
 
         # Mark the neighbors
@@ -142,6 +152,7 @@ class LimitedArea():
                                           bdyMaskVertex,
                                           inside=self.INSIDE,
                                           unmarked=self.UNMARKED,
+                                          format=self.cdf_format,
                                           *args,
                                           **kwargs)
 
@@ -301,7 +312,7 @@ class LimitedArea():
     
 
     # Mark Boundary points
-    def mark_boundary(self, mesh, points, *args, **kwargs):
+    def mark_boundary(self, mesh, points, bdyMaskCell, *args, **kwargs):
         """ Mark the nearest cell to each of the cords in points
         as a boundary cell and return bdyMaskCell.
 
@@ -311,7 +322,6 @@ class LimitedArea():
                  region as flatten list of lat, lon coordinates. i.e:
 
                  [lat0, lon0, lat1, lon1, lat2, lon2, ..., latN, lonN]
-
         """
         if self._DEBUG_ > 0:
             print("DEBUG: Marking the boundary points: ")
@@ -327,9 +337,6 @@ class LimitedArea():
 
         if self._DEBUG_ > 0:
             print("DEBUG: Num Boundary Cells: ", len(boundaryCells))
-
-        # Create the bdyMask fields
-        bdyMaskCell = np.full(mesh.nCells, self.UNMARKED)
 
         # Mark the boundary cells that were given as input
         for bCells in boundaryCells:

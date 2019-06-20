@@ -59,6 +59,7 @@ if __name__ == "__main__":
 
     regional_area = LimitedArea(args.grid,
                                 args.points,
+                                format='NETCDF3_64BIT_OFFSET',
                                 **kwargs)
 
     regional_area.gen_region(**kwargs)

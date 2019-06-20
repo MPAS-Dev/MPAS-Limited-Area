@@ -100,7 +100,7 @@ class RegionSpec:
                                                     self.in_point[0],
                                                     self.in_point[1])
 
-            return self.name, self.in_point, self.points
+            return self.name, self.in_point, [self.points]
         elif self.type == 'circle':
             if self._DEBUG_ > 0:
                 print("DEBUG: Using the circle method for region generation")
@@ -109,12 +109,12 @@ class RegionSpec:
                                                     self.in_point[0],
                                                     self.in_point[1])
 
+
             # Convert to meters, then divide by radius to get radius upon sphere w/ r = 1
             self.radius = (self.radius * 1000) / EARTH_RADIUS
             self.points = self.circle(self.in_point[0], self.in_point[1], self.radius)
 
-            return self.name, self.in_point, self.points.flatten()
-
+            return self.name, self.in_point, [self.points.flatten()]
 
     def circle(self, center_lat, center_lon, radius):
         """ Return a list of latitude and longitude points in degrees that
