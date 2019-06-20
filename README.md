@@ -144,14 +144,3 @@ radius: 4000
 # Reporting Bugs
 
 If you encounter a bug and wish to report it, please do so on this Github repository's Issues page! Thank you!
-
-# To Do
-
-1. ~~Test a region that is around the equator~~ - All good!
-2. ~~Test a region that is straddles the dateline~~
-3. ~~Test regions that surrounds each pole~~
-4. Set the NetCDF output of the region to be NetCDF5
-5. Speed up marking `BdyMaskVertex` and `bdyMaskEdge`
-
-
-
