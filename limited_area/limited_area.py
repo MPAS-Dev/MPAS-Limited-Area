@@ -44,11 +44,7 @@ class LimitedArea():
         # Keyword arguments
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.boundary = kwargs.get('markNeighbors', 'search')
-        self.output = kwargs.get('output', "")
         self.cdf_format = format
-
-        if self.output is None:
-            self.output = ''
 
         # Check to see that all of the meshes exists and that they are
         # valid netCDF files.
@@ -145,7 +141,7 @@ class LimitedArea():
 
         # Subset the grid into a new region:
         print('Subseting mesh fields into the specified region mesh...')
-        regionFname = self.create_regional_fname(name, self.mesh, output=self.output)
+        regionFname = self.create_regional_fname(name, self.mesh)
         regionalMesh = self.mesh.subset_fields(regionFname,
                                           bdyMaskCell,
                                           bdyMaskEdge,
@@ -162,33 +158,21 @@ class LimitedArea():
         print("Created a regional mesh: ", regionFname)
 
         print('Creating graph partition file...', end=' '); sys.stdout.flush()
-        regionalMesh.create_graph_file(self.create_partiton_fname(name,
-                                                                  self.mesh,
-                                                                  output=self.output))
+        regionalMesh.create_graph_file(self.create_partiton_fname(name, self.mesh,))
 
         self.mesh.mesh.close()
         regionalMesh.mesh.close()
 
     def create_partiton_fname(self, name, mesh, **kwargs):
         """ Generate the filename for the regional graph.info file"""
-        output = kwargs.get('output', None)
-
-        if output:
-            return output+'.graph.info'
-        else:
-            nCells = mesh.mesh.dimensions['nCells'].size
-            return name+'.'+str(nCells)+'.graph.info'
+        nCells = mesh.mesh.dimensions['nCells'].size
+        return name+'.'+str(nCells)+'.graph.info'
         
 
     def create_regional_fname(self, name, mesh, **kwargs):
         """ Generate the filename for the regional mesh file """
-        output = kwargs.get('output', None)
-
-        if output:
-            return output
-        else:
-            nCells = mesh.mesh.dimensions['nCells'].size
-            return name+'.'+str(nCells)+'.grid.nc'
+        nCells = mesh.mesh.dimensions['nCells'].size
+        return name+'.'+str(nCells)+'.grid.nc'
 
 
     # Mark_neighbors_search - Faster for smaller regions ??

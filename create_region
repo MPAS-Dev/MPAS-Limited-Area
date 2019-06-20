@@ -32,10 +32,6 @@ if __name__ == "__main__":
                           help='Global MPAS Grid File',
                           type=str)
 
-    options.add_argument('-o', '--output',
-                         help='Regional grid output file name',
-                         type=str,
-                         default=None)
     options.add_argument('-v', '--verbose',
                          help='Turn on verbose setting 0-5',
                          type=int,
@@ -51,11 +47,9 @@ if __name__ == "__main__":
     if DEBUG > 1:
         print("DEBUG: Grid File: ", args.grid)
         print("DEBUG: Points File: ", args.points)
-        print("DEBUG: Output: ", args.output)
 
 
-    kwargs = {'output' : args.output,
-              'DEBUG' : DEBUG}
+    kwargs = { 'DEBUG' : DEBUG }
 
     regional_area = LimitedArea(args.grid,
                                 args.points,
