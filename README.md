@@ -47,6 +47,21 @@ MPAS NetCDF grid file. You'll find example points file in the points-example
 directory within the docs directory of this repository and below in the *Points
 Syntax* section.
 
+
+## Notes on Creating Large Regions (nCells >= 2,000,000)
+
+If the region you create is significantly large ( >= 2,000,000 grid cells) you
+will need to change the NetCDF file version of the regional grid file. To do
+this, you can change the `format` keyword argument of the `LimitedArea`
+initialization call within the `create_region` script to `NETCDF3_64BIT_DATA`:
+
+```
+regional_area = LimitedArea(args.grid,
+                            args.points,
+                            format='NETCDF3_64BIT_DATA',
+                            **kwargs)
+```
+
 # Points (pts) Syntax<a name="Points">
 
 A number of pts syntax files are available in `docs/points-examples`.
