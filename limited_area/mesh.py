@@ -5,14 +5,21 @@ import os
 import numpy as np
 from netCDF4 import Dataset
 
-""" mesh.py - Handle NetCDF file operations as well as calculations
-upon on MPAS grid."""
+""" mesh.py - Handle NetCDF file operations as well as helpful
+calculations upon on MPAS grid. """
 
 class MeshHandler:
     """ Handle the operations related to NetCDF/MPAS grids. """
 
     def __init__(self, fname, mode, *args, **kwargs):
-        """ """
+        """ Open fname with mode, for either reading, or creating
+        
+        fname - A valid netCDF4 file OR, if `mode==w` then a name of a 
+                desired netCDF that will be created for writing.
+        mode  - Mode for opening the file, options are 'r' and 'w' for read
+                and write respectively.
+        
+        """
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.fname = fname
 
@@ -60,7 +67,13 @@ class MeshHandler:
             return False
 
     def _load_vars(self):
-        """ Preload variables to avoid multiple, unncessary IO calls """
+        """ Pre-load variables to avoid multiple, unnecessary IO calls 
+            
+            Pulling variables from a netCDF4 interface like the following:
+            ```self.mesh.variables['lonCell']{[:]```, will read it from disk
+            each time, thus we can pre-load the variables into memory to reduce
+            I/O calls.
+        """
         if self._DEBUG_ > 2:
             print("DEBUG: In Load Vars")
 
@@ -115,16 +128,6 @@ class MeshHandler:
         lat - Latitude - Radians
         lon - Longitude - Radians
         """
-
-        """
-        nCells
-        latCells
-        lonCells
-        nEdgesOnCell
-        cellsOnCell
-        sphere_radius
-        """
-
         nearest_cell = 0 # Start at the first cell
         current_cell = -1
 
@@ -234,14 +237,6 @@ class MeshHandler:
         indexingFields['edgesOnVertex'] = bdyMaskEdge
         indexingFields['cellsOnVertex'] = bdyMaskCell
 
-        """
-        nCells
-        indexToCellIDs
-        indexToCellIDs
-        indexToEdgeIDs
-        indexToVertexIDs
-        """
-
         glbBdyCellIDs = self.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
         glbBdyEdgeIDs = self.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
         glbBdyVertexIDs = self.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
@@ -283,7 +278,7 @@ class MeshHandler:
                 region.mesh.createDimension(dim,
                                             self.mesh.dimensions[dim].size)
 
-        # Make boundary Mask's between 0 and the number of speficified relaxtion
+        # Make boundary Mask's between 0 and the number of specified relaxation
         # layers
         region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
         region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
@@ -296,14 +291,14 @@ class MeshHandler:
         scan(bdyMaskCell)
         scan(bdyMaskEdge)
         scan(bdyMaskVertex)
-        
+
         # Variables - Create Variables
         for var in self.mesh.variables:
             region.mesh.createVariable(var, self.mesh.variables[var].dtype,
                                             self.mesh.variables[var].dimensions)
 
         # Subset global variables into the regional mesh and write them
-        # to the regional mesh - reindexing if neccessary
+        # to the regional mesh - re-indexing if necessary
         for var in self.mesh.variables:
             print("Copying variable ", var, "...", end=' ', sep=''); sys.stdout.flush()
             if var in self.variables:
@@ -349,11 +344,13 @@ class MeshHandler:
 
 
 def scan(arr):
-    """ """
+    """ For values within bdyMaskCell/Vertex/Edge etc. assign them
+    values of their edges, cells etc."""
     arr[arr > 0] = np.arange(1, len(arr[arr > 0])+1)
 
 
 def reindex_field(field, mmap):
+    """ Re-index fields to be in range of their dimensions """
     print('reindxing field ...', end=' '); sys.stdout.flush()
     return mmap[field[:]-1]
 
@@ -374,6 +371,8 @@ def latlon_to_xyz(lat, lon, radius):
 
 
 def xyz_to_latlon(point):
+    """ Convert a Cartesian coordinate point into a latitude,
+        longitude point in radians """
     x = point[0]
     y = point[1]
     z = point[2]

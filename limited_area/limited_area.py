@@ -34,12 +34,8 @@ class LimitedArea():
         region       -- Path to a region specification - Can be either a points 
                         file or a shapeFile (Which is currently not 
                         implemented!)
-        regionFormat -- The type of the region file. ie either 'points' or
-                        'shapefile'
 
-        Named Args TODO: Look up the format to do this
         DEBUG         -- Debug value used to turn on debug output, default == 0
-        output        -- Optional name to append to regional mesh filename
         markNeighbors -- Algorithm choice for choosing relaxation layers - Default
                          is mark neighbor serach
         """ 
@@ -209,11 +205,6 @@ class LimitedArea():
         if inCell == None:
             print("ERROR: In cell not found within _mark_neighbors_search")
 
-        """
-        nEdgesOnCell
-        cellsOnCell
-        """
-
         stack = [inCell]
         while len(stack) > 0:
             iCell = stack.pop()
@@ -230,13 +221,13 @@ class LimitedArea():
 
     # mark_neighbors - Faster for larger regions ??
     def _mark_neighbors(self, mesh, nType, bdyMaskCell, *args, **kwargs):
-        """ """
+        """ Mark a relaxation layers of nType
 
+        mesh        -- The global MPAS mesh
+        nType       -- The current relaxation cell that will be marked on bdyMaskCell
+        bdyMaskCell -- The global mask marking the regional cell subset
         """
-        nCells
-        nEdgesOnCell
-        cellsOnCell
-        """
+
         for iCell in range(mesh.nCells):
             if bdyMaskCell[iCell] == self.UNMARKED:
                 for i in range(mesh.nEdgesOnCell[iCell]):
@@ -257,11 +248,6 @@ class LimitedArea():
         if self._DEBUG_ > 1:
             print("DEBUG: Flood filling with flood_fill!")
 
-        """
-        nEdgesOnCell
-        cellsOnCell
-        """
-
         stack = [inCell]
         while len(stack) > 0:
             iCell = stack.pop()
@@ -276,15 +262,8 @@ class LimitedArea():
 
     def mark_edges(self, mesh, bdyMaskCell, *args, **kwargs):
         """ Mark the edges that are in the specified region and return
-        bdyMaskEdge.
-        
-        mesh -
-        bdyMaskCell -
-        """
+        bdyMaskEdge. """
 
-        """
-        cellsOnEdge
-        """
         bdyMaskEdge = bdyMaskCell[mesh.cellsOnEdge[:,:]-1].min(axis=1)
         bdyMaskEdge = np.where(bdyMaskEdge > 0,
                                bdyMaskEdge,
@@ -310,9 +289,6 @@ class LimitedArea():
         """ Mark the vertices that are in the spefied region and return
         bdyMaskVertex."""
 
-        """
-        cellsOnVertex
-        """
         bdyMaskVertex = bdyMaskCell[mesh.cellsOnVertex[:,:]-1].min(axis=1)
         bdyMaskVertex = np.where(bdyMaskVertex > 0,
                                  bdyMaskVertex,
@@ -337,26 +313,18 @@ class LimitedArea():
     # Mark Boundary points
     def mark_boundary(self, mesh, points, *args, **kwargs):
         """ Mark the nearest cell to each of the cords in points
-        as a boundary cell.
+        as a boundary cell and return bdyMaskCell.
 
-        mesh -
-        inPoint -
-        points -
+        mesh - The global mesh
+        inPoint - A point that lies within the regional area
+        points - A list of points that define the boundary of the desired
+                 region as flatten list of lat, lon coordinates. i.e:
+
+                 [lat0, lon0, lat1, lon1, lat2, lon2, ..., latN, lonN]
 
         """
         if self._DEBUG_ > 0:
             print("DEBUG: Marking the boundary points: ")
-
-        """
-        nCells
-        latCell
-        lonCell
-        cellsOnCell
-        maxEdges
-        nEdgesOnCell
-        indexToCellID
-        sphere_radius
-        """
 
         boundaryCells = []
 
