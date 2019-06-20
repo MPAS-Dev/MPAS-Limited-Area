@@ -11,14 +11,18 @@ calculations upon on MPAS grid. """
 class MeshHandler:
     """ Handle the operations related to NetCDF/MPAS grids. """
 
-    def __init__(self, fname, mode, *args, **kwargs):
+    def __init__(self, fname, mode, format='NETCDF3_64BIT_OFFSET', *args, **kwargs):
         """ Open fname with mode, for either reading, or creating
         
         fname - A valid netCDF4 file OR, if `mode==w` then a name of a 
                 desired netCDF that will be created for writing.
         mode  - Mode for opening the file, options are 'r' and 'w' for read
                 and write respectively.
-        
+        format - NetCDF file format for the regional mesh. This is only used
+                if `mode==w`. For more information on NetCDF versions see the
+                netCDF4 Python documentation found here:
+
+                http://unidata.github.io/netcdf4-python/netCDF4/index.html#netCDF4.Dataset.__init__
         """
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.fname = fname
@@ -30,13 +34,14 @@ class MeshHandler:
             else:
                 sys.exit(-1)
         elif mode == 'w':
-            self.create_file(fname, mode)
+            self.create_file(fname, mode, format)
 
 
-    def create_file(self, fname, mode):
-        """ Create and open a new NetCDF file with name fname and access mode mode """
+    def create_file(self, fname, mode, format):
+        """ Create and open a new NetCDF file with name fname and access mode mode
+        with the NetCDF file version being format. """
         try:
-            self.mesh = Dataset(fname, mode)
+            self.mesh = Dataset(fname, mode, format=format)
             return
         except:
             print("ERROR: There was a problem creating the file ", fname)
@@ -194,6 +199,7 @@ class MeshHandler:
                       bdyMaskVertex,
                       inside,
                       unmarked,
+                      format='NETCDF3_64BIT_OFFSET',
                       *args, 
                       **kwargs):
         """ Subset the current mesh and return a new regional mesh with
@@ -251,7 +257,7 @@ class MeshHandler:
             sys.exit(-1)
 
         # Create a new grid
-        region = MeshHandler(regionalFname, 'w', *args, **kwargs)
+        region = MeshHandler(regionalFname, 'w', format=format, *args, **kwargs)
 
         # Dimensions - Create dimensions
         for dim in self.mesh.dimensions:

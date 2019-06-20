@@ -20,6 +20,7 @@ class LimitedArea():
                  mesh_file,
                  region,
                  regionFormat='points',
+                 format='NETCDF3_64BIT_OFFSET',
                  *args,
                  **kwargs):
         """ Init function for Limited Area
@@ -44,6 +45,7 @@ class LimitedArea():
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.boundary = kwargs.get('markNeighbors', 'search')
         self.output = kwargs.get('output', "")
+        self.cdf_format = format
 
         if self.output is None:
             self.output = ''
@@ -159,6 +161,7 @@ class LimitedArea():
                                           bdyMaskVertex,
                                           inside=self.INSIDE,
                                           unmarked=self.UNMARKED,
+                                          format=self.cdf_format,
                                           *args,
                                           **kwargs)
 
