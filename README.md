@@ -48,7 +48,7 @@ directory within the docs directory of this repository and below in the *Points
 Syntax* section.
 
 
-## Notes on Creating Large Regions (nCells >= 2,000,000)
+## Notes on Creating Large Regions (nCells >= 2,000,000)<a name="large-Regions">
 
 If the region you create is significantly large ( >= 2,000,000 grid cells) you
 will need to change the NetCDF file version of the regional grid file. To do
@@ -61,6 +61,17 @@ regional_area = LimitedArea(args.grid,
                             format='NETCDF3_64BIT_DATA',
                             **kwargs)
 ```
+
+## Concave Regions<a name="concave">
+
+When creating meshes with the polygon method it is important to make sure that
+defined regions **are not concave**. The current v7.0 release of MPAS will fail
+on meshes/graph decompositions that are convex in shape when intpolating static
+data.
+
+A fix for this is being developed for MPAS and once the fix is there we will
+update this README to state so.  Therefore, for the time being, please ensure
+that regions you create **are convex in shape**.
 
 # Points (pts) Syntax<a name="Points">
 
@@ -96,7 +107,7 @@ Then the resulting regional MPAS grid will be named the following:
 `region_name.10242.grid.nc` if the region was created from the
 `x1.10242.grid.nc`.
 
-## Polygon
+## Polygon<a name="polygon">
 
 A polygon points file would look like the following:
 ```
@@ -129,8 +140,12 @@ Point: 40.0, -100.0
 20.0, -129.0
 ```
 
+**NOTE:** When creating regional meshes with the polygon method it is
+neccessary to **not create concave** regions. Doing so will result in MPAS
+init_atmosphere producing erronus results while interpolating static fields.
+Please see the section on [Concave Regions](concave).
 
-## Circle
+## Circle<a name="circle">
 
 The circle method produces a regional circle subset of a global grid given a
 center point (`Point`) and a radius from that point (`Radius`).
@@ -156,6 +171,6 @@ Point: 40.0, -105.5
 radius: 4000
 ```
 
-# Reporting Bugs
+# Reporting Bugs<a name="bugs">
 
 If you encounter a bug and wish to report it, please do so on this Github repository's Issues page! Thank you!
