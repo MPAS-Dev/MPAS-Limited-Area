@@ -82,8 +82,8 @@ class LimitedArea():
     def gen_region(self, *args, **kwargs):
         """ Generate the boundary region of the given region for the given mesh(es). """
 
-        # Call the regionSpec to generate `name, in_point, points`
-        name, inPoint, points = self.regionSpec.gen_spec(self.region_file, **kwargs)
+        # Call the regionSpec to generate `name, in_point, boundaries`
+        name, inPoint, boundaries= self.regionSpec.gen_spec(self.region_file, **kwargs)
 
         if self._DEBUG_ > 0:
             print("DEBUG: Region Spec has been generated")
@@ -95,15 +95,19 @@ class LimitedArea():
         print('\n')
         print('Creating a regional mesh of ', self.mesh.fname)
 
-        # Mark the boundary cells
-        print('Marking boundary cells ...')
-        bdyMaskCell = self.mark_boundary(self.mesh, points)
-
-        # Find the nearest cell to the inside point
-        inCell = self.mesh.nearest_cell(inPoint[0], inPoint[1])
+        # Mark boundaries
+        # A specification may have multiple, discontiguous boundaries,
+        # so, create a unmarked, filled bdyMaskCell and pass it to
+        # mark_boundary for each boundary.
+        print('Marking boundary... ', end=''); sys.stdout.flush()
+        bdyMaskCell = np.full(self.mesh.nCells, self.UNMARKED)
+        i = 0
+        for boundary in boundaries:
+            print("boundary ", i, "... ", end=''); sys.stdout.flush(); i += 1
+            bdyMaskCell = self.mark_boundary(self.mesh, boundary)
 
         # Flood fill from the inside point
-        print('Filling region ...')
+        print('\nFilling region ...')
         bdyMaskCell = self.flood_fill(self.mesh, inCell, bdyMaskCell)
 
         # Mark the neighbors
@@ -321,7 +325,6 @@ class LimitedArea():
                  region as flatten list of lat, lon coordinates. i.e:
 
                  [lat0, lon0, lat1, lon1, lat2, lon2, ..., latN, lonN]
-
         """
         if self._DEBUG_ > 0:
             print("DEBUG: Marking the boundary points: ")
@@ -337,9 +340,6 @@ class LimitedArea():
 
         if self._DEBUG_ > 0:
             print("DEBUG: Num Boundary Cells: ", len(boundaryCells))
-
-        # Create the bdyMask fields
-        bdyMaskCell = np.full(mesh.nCells, self.UNMARKED)
 
         # Mark the boundary cells that were given as input
         for bCells in boundaryCells:
