@@ -271,8 +271,12 @@ class MeshHandler:
                 region.mesh.createDimension(dim, 
                                             len(glbBdyVertexIDs))
             else:
-                region.mesh.createDimension(dim,
-                                            self.mesh.dimensions[dim].size)
+                if self.mesh.dimensions[dim].isunlimited():
+                    region.mesh.createDimension(dim,
+                                                None)
+                else:
+                    region.mesh.createDimension(dim,
+                                                self.mesh.dimensions[dim].size)
 
         # Make boundary Mask's between 0 and the number of specified relaxation
         # layers
