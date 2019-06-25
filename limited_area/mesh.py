@@ -294,17 +294,26 @@ class MeshHandler:
 
         # Variables - Create Variables
         for var in self.mesh.variables:
-            region.mesh.createVariable(var, self.mesh.variables[var].dtype,
-                                            self.mesh.variables[var].dimensions)
-            try:
-                region.mesh.variables[var].units = self.mesh.variables[var].units
-                region.mesh.variables[var].long_name = self.mesh.variables[var].long_name
-            except:
-                pass
+            # If we're subsetting a static file, don't copy variables for bdyMaskCell,
+            # bdyMaskEdge or bdyMaskVertex if they exist in the static file as they have
+            # been created by this program
+            if var != 'bdyMaskCell' and var != 'bdyMaskEdge' and var != 'bdyMaskVertex':
+                region.mesh.createVariable(var, self.mesh.variables[var].dtype,
+                                                self.mesh.variables[var].dimensions)
+                try:
+                    region.mesh.variables[var].units = self.mesh.variables[var].units
+                    region.mesh.variables[var].long_name = self.mesh.variables[var].long_name
+                except:
+                    pass
 
         # Subset global variables into the regional mesh and write them
         # to the regional mesh - re-indexing if necessary
         for var in self.mesh.variables:
+            # If subsetting a static file, don't copy any bdyMask variables, as we
+            # created them above
+            if var == 'bdyMaskCell' or var == 'bdyMaskEdge' or var == 'bdyMaskVertex':
+                continue
+
             print("Copying variable ", var, "...", end=' ', sep=''); sys.stdout.flush()
             if var in self.variables:
                 arrTemp = self.variables[var] # Use the pre-loaded variable if possible
