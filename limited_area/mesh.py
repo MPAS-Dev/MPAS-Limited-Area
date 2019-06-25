@@ -296,6 +296,11 @@ class MeshHandler:
         for var in self.mesh.variables:
             region.mesh.createVariable(var, self.mesh.variables[var].dtype,
                                             self.mesh.variables[var].dimensions)
+            try:
+                region.mesh.variables[var].units = self.mesh.variables[var].units
+                region.mesh.variables[var].long_name = self.mesh.variables[var].long_name
+            except:
+                pass
 
         # Subset global variables into the regional mesh and write them
         # to the regional mesh - re-indexing if necessary
