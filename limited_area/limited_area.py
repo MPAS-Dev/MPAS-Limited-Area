@@ -347,14 +347,14 @@ class LimitedArea():
 
             pta = latlon_to_xyz(mesh.latCells[sourceCell],
                                 mesh.lonCells[sourceCell],
-                                mesh.sphere_radius)
+                                1.0)
             ptb = latlon_to_xyz(mesh.latCells[targetCell],
                                 mesh.lonCells[targetCell],
-                                mesh.sphere_radius)
+                                1.0)
         
             pta = np.cross(pta, ptb)
             temp = np.linalg.norm(pta)
-            cross = pta / temp
+            pta = pta / temp
             iCell = sourceCell
             while iCell != targetCell:
                 bdyMaskCell[iCell] = self.INSIDE
@@ -363,17 +363,17 @@ class LimitedArea():
                                           mesh.lonCells[iCell],
                                           mesh.latCells[targetCell],
                                           mesh.lonCells[targetCell],
-                                          mesh.sphere_radius)
+                                          1.0)
                 for j in range(mesh.nEdgesOnCell[iCell]):
                     v = mesh.cellsOnCell[iCell, j] - 1
                     dist = sphere_distance(mesh.latCells[v],
                                            mesh.lonCells[v],
                                            mesh.latCells[targetCell],
                                            mesh.lonCells[targetCell],
-                                           mesh.sphere_radius)
+                                           1.0)
                     if dist > mindist:
                         continue
-                    pt = latlon_to_xyz(mesh.latCells[v], mesh.lonCells[v], mesh.sphere_radius)
+                    pt = latlon_to_xyz(mesh.latCells[v], mesh.lonCells[v], 1.0)
                     angle = np.dot(pta, pt)
                     angle = abs(0.5 * np.pi - np.arccos(angle))
                     if angle < minangle:
