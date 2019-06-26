@@ -165,14 +165,19 @@ class LimitedArea():
 
     def create_partiton_fname(self, name, mesh, **kwargs):
         """ Generate the filename for the regional graph.info file"""
-        nCells = mesh.mesh.dimensions['nCells'].size
-        return name+'.'+str(nCells)+'.graph.info'
+        return name+'.graph.info'
         
 
     def create_regional_fname(self, name, mesh, **kwargs):
         """ Generate the filename for the regional mesh file """
-        nCells = mesh.mesh.dimensions['nCells'].size
-        return name+'.'+str(nCells)+'.grid.nc'
+        if 'static' in mesh.fname and not 'grid' in mesh.fname:
+            meshType = 'static'
+        elif 'grid' in mesh.fname and not 'static' in mesh.fname:
+            meshType = 'grid'
+        else:
+            meshType = 'region'
+
+        return name+'.'+meshType+'.nc'
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
