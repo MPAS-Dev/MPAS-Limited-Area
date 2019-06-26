@@ -22,7 +22,6 @@ else:
         return types.MethodType(func, obj, obj.__class__)
 
 
-
 def normalize_cords(lat, lon):
     """ Returned lat, and lon to be in radians and the same 
     range as MPAS - Lat: -pi/2 to pi/2 - LonL 0 to 2*pi
@@ -109,11 +108,22 @@ class RegionSpec:
                                                     self.in_point[0],
                                                     self.in_point[1])
 
-
             # Convert to meters, then divide by radius to get radius upon sphere w/ r = 1
             self.radius = (self.radius * 1000) / EARTH_RADIUS
             self.points = self.circle(self.in_point[0], self.in_point[1], self.radius)
+            return self.name, self.in_point, [self.points.flatten()]
+        elif self.type == 'ellipse':
+            if self._DEBUG_ > 0:
+                print("DEBUG: Using the ellipse method for region generation")
 
+            # Convert ellipse center point from degrees to radians
+            self.in_point[0], self.in_point[1] = normalize_cords(
+                                                    self.in_point[0],
+                                                    self.in_point[1])
+
+            self.points = self.ellipse(self.in_point[0], self.in_point[1],
+                                       self.semimajor, self.semiminor,
+                                       self.orientation)
             return self.name, self.in_point, [self.points.flatten()]
 
     def circle(self, center_lat, center_lon, radius):
@@ -165,3 +175,58 @@ class RegionSpec:
 
         return np.array(ll)
 
+    def ellipse(self, center_lat, center_lon, semi_major, semi_minor, orientation):
+        """ Return a list of points that form an ellipse around [center_lat, center_lon] 
+
+        center_lat - The center latitude of the ellipse in degrees
+        center_lon - The center longitude of the ellipse in degrees
+        semi_major - The length of the semi_major axies in meters
+        semi_minor - The legnth of the semi_minor axies in meters
+        orientaiton - The orientation of the desired ellipse, rotated clockwise from north.
+
+        Given the center_lat and center_lon of an ellipse, create a region that forms an ellipse
+        with the semi major axies length being == `semi_major` and the semi minor axies being ==
+        `semi_minor` and rotate the ellipse clockwise by `orientation` from due North.
+
+        """
+
+        P = []
+
+        # Convert ellipse center from (lat,lon) to Cartesian
+        C = latlon_to_xyz(center_lat, center_lon, 1.0)
+
+        # Convert semi-major and semi-minor axis lengths from meters to radians
+        semi_major = semi_major / EARTH_RADIUS
+        semi_minor = semi_minor / EARTH_RADIUS
+
+        # Convert orientation angle to radians
+        orientation = orientation * np.pi / 180.0
+
+        # Find a point not equal to C or -C
+        K = np.zeros(3)
+        K[0] = 0
+        K[1] = 0
+        K[2] = 1
+
+        if abs(np.dot(K,C)) >= 0.9:
+            K[0] = 1
+            K[1] = 0
+            K[2] = 0
+
+        # S is then a vector orthogonal to C
+        S = np.cross(C, K)
+        S = S / np.linalg.norm(S)
+
+        for r in np.linspace(0.0, 2.0*np.pi, 100):
+            radius = np.sqrt((semi_major * np.cos(r))**2 + (semi_minor * np.sin(r))**2)
+            P0 = rotate_about_vector(C, S, radius)
+            ang = np.arctan2(semi_minor * np.sin(r), semi_major * np.cos(r))
+            P.append(rotate_about_vector(P0, C, ang-orientation))
+
+        ll = []
+        # TODO: The efficency here can be improved for memory
+        # and probably comp time
+        for i in range(len(P)):
+            ll.append(xyz_to_latlon(P[i])) # Convert back to latlon
+
+        return np.array(ll)

@@ -38,8 +38,12 @@ Point: 45.0, -118.0
 
 # Ellipse
 ```
-Name: Russia
-Type: Ellipse
+Name: Japan
+Type: ellipse
+Point: 37.9, 138.4
+Semi-major-axis: 800000.0
+Semi-minor-axis: 400000.0
+Orientation-angle: 45.0
 ```
 
 # Example
@@ -93,6 +97,8 @@ def PointsParser(self, file, *args, **kwargs):
                     self.type = 'custom'
                 elif rhs == 'Circle' or rhs == 'circle':
                     self.type = 'circle'
+                elif rhs == 'Ellipse' or rhs == 'ellipse':
+                    self.type = 'ellipse'
                 else:
                     print("ERROR: This is not a valid points type: ", rhs)
                     sys.exit(-1)
@@ -103,6 +109,12 @@ def PointsParser(self, file, *args, **kwargs):
                                      float(rhs.split(',')[1])]
             elif lhs == 'Radius' or lhs == 'radius':
                 self.radius = float(rhs)
+            elif lhs == 'Semi-major-axis' or lhs == 'semi-major-axis':
+                self.semimajor = float(rhs)
+            elif lhs == 'Semi-minor-axis' or lhs == 'semi-minor-axis':
+                self.semiminor = float(rhs)
+            elif lhs == 'Orientation-angle' or lhs == 'orientation-angle':
+                self.orientation = float(rhs)
 
         elif line == 'keyword': # Then we have a keyword option
             pass
