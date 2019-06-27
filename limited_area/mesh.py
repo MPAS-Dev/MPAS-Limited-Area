@@ -190,7 +190,7 @@ class MeshHandler:
                         f.write(repr(cellsOnCell[i,j])+' ')
                 f.write('\n')
 
-        print(graphFname)
+        return graphFname
 
     def subset_fields(self, 
                       regionalFname, 
