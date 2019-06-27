@@ -158,10 +158,13 @@ class LimitedArea():
         print("Created a regional mesh: ", regionFname)
 
         print('Creating graph partition file...', end=' '); sys.stdout.flush()
-        regionalMesh.create_graph_file(self.create_partiton_fname(name, self.mesh,))
+        graphFname = regionalMesh.create_graph_file(self.create_partiton_fname(name, self.mesh,))
+        print(graphFname)
 
         self.mesh.mesh.close()
         regionalMesh.mesh.close()
+
+        return regionFname, graphFname
 
     def create_partiton_fname(self, name, mesh, **kwargs):
         """ Generate the filename for the regional graph.info file"""
