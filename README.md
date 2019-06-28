@@ -62,16 +62,23 @@ regional_area = LimitedArea(args.grid,
                             **kwargs)
 ```
 
-## Concave Regions<a name="concave">
+## Notes on creating regions from .grid.nc files<a name="concave">
 
-When creating meshes with the polygon method it is important to make sure that
-defined regions **are not concave**. The current v7.0 release of MPAS will fail
-on meshes/graph decompositions that are convex in shape when intpolating static
-data.
+When creating region subsets from `grid.nc` files, it is important to take a
+few things into account. Because of the way the init_atmosphere model 
+interpolates some static data, it is possible to create incorrect meshes
+when subsetting a global `grid.nc` file.
 
-A fix for this is being developed for MPAS and once the fix is there we will
-update this README to state so.  Therefore, for the time being, please ensure
-that regions you create **are convex in shape**.
+Creating a mesh that is either **concave** in overall shape, or spans
+significant longitudes near the poles will cause init_atmosphere model
+to incorrectly interpolate some static fields.
+
+Thus, when subsetting a region of a `grid.nc` file, it is import to ensure
+the subsetted region's shape is **convex** in shape and is significantly 
+far enough away from the poles.
+
+If you would like to have a convex region or region that spans many longitudes
+it is possible to subvert this pitfal by creating regions from `static.nc` file.
 
 # Points (pts) Syntax<a name="Points">
 
