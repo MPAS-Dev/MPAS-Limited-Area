@@ -78,7 +78,7 @@ class LimitedArea():
             print("DEBUG: Region Spec has been generated")
             print("DEBUG: Region Name: ", name)
             print("DEBUG: In Point: ", inPoint)
-            print("DEBUG: # of points: ", len(points))
+            print("DEBUG: # of points: ", len(boundaries))
 
         # For each mesh, create a regional mesh and save it
         print('\n')
