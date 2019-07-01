@@ -61,16 +61,24 @@ MPAS NetCDF grid file. You'll find example points file in the points-example
 directory within the docs directory of this repository and below in the *Points
 Syntax* section.
 
-## Concave Subset of grid.nc files<a name="concave">
+## Notes on creating regions from .grid.nc files<a name="concave">
 
-When creating meshes with the polygon method, it is important to make sure that
-defined regions **are not concave in shape**. The current v7.0 release of MPAS
-will fail on meshes/graph decompositions that are convex in shape when
-interpolating static data.
+When creating region subsets from `grid.nc` files, it is important to take a
+few things into account. Because of the way the init_atmosphere model 
+interpolates some static data, it is possible to create incorrect static
+feilds on a concave mesh, during the static interpolation of the 
+init_atmosphere model.
 
-A fix for this is being developed for MPAS and once the fix is there we will
-update this README to state so.  Therefore, for the time being, please ensure
-that regions you create are convex in shape.
+Creating a mesh that is either **concave** in overall shape, or spans
+significant longitudes near the poles will cause init_atmosphere model
+to incorrectly interpolate some static fields.
+
+Thus, when subsetting a region of a `grid.nc` file, it is import to ensure
+the subsetted region's shape is **convex** in shape.
+
+If you would like to have a convex region or region that spans many longitudes
+you can avoid this problem to by simply using this program on meshes that contain
+statc fields (i.e. `static.nc` files).
 
 ## Notes on Creating Large Regions (nCells >= 2,000,000)<a name="large-Regions">
 
@@ -184,7 +192,32 @@ Point: 40.0, -105.5
 radius: 4000
 ```
 
-# Reporting Bugs<a name="bugs">
+## Equatorial Channel
+
+The equatorial channel method can be used to specify a channel parallel to the
+equator, across longitudes and between two latitude points.
+
+For instance, one can specify a region between the tropics as:
+
+```
+Name: tropics
+Type: channel
+Upper-lat: 23.43676
+lower-lat: -23.43676
+```
+
+### **Caution on creating channels of `grid.nc` files**
+
+Depending on the location of a specified channel, erroneous results can be
+caused during some interpolation static fields by the init_atmosphere core.
+This will cause erroneous results within result `static.nc` files and will
+cause resulting files to be unusable.
+
+Thus, it is **highly** recommended to only use the channel method upon
+`static.nc` files. Doing so will avoid this problem and will also save time
+interpolating the static fields on different regions.
+
+# Reporting Bugs
 
 If you encounter a bug and wish to report it, please do so on this Github
 repository's Issues page! Thank you!

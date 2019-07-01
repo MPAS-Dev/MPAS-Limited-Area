@@ -109,12 +109,41 @@ class RegionSpec:
                                                     self.in_point[0],
                                                     self.in_point[1])
 
-
             # Convert to meters, then divide by radius to get radius upon sphere w/ r = 1
             self.radius = (self.radius * 1000) / EARTH_RADIUS
             self.points = self.circle(self.in_point[0], self.in_point[1], self.radius)
 
             return self.name, self.in_point, [self.points.flatten()]
+        elif self.type == 'channel':
+            if self._DEBUG_ > 0:
+                print("DEBUG: Using the channel method for region generation")
+
+            if self.ulat == self.llat:
+                print("ERROR: Upper and lower latitude for channel specification")
+                print("ERROR: cannot be equal")
+                print("ERROR: Upper-lat: ", self.ulat)
+                print("ERROR: Lower-lat: ", self.llat)
+                sys.exit(-1)
+
+            self.ulat, self.llat = normalize_cords(self.ulat, self.llat)
+
+            self.boundaries = []
+
+            upperBdy = np.empty([100, 2])
+            lowerBdy = np.empty([100, 2])
+
+            upperBdy[:,0] = self.ulat
+            upperBdy[:,1] = np.linspace(0.0, 2.0 * np.pi, 100)
+
+            lowerBdy[:,0] = self.llat
+            lowerBdy[:,1] = np.linspace(0.0, 2.0 * np.pi, 100)
+
+            self.in_point = np.array([(self.ulat + self.llat) / 2, 0])
+
+            self.boundaries.append(upperBdy.flatten())
+            self.boundaries.append(lowerBdy.flatten())
+
+            return self.name, self.in_point, self.boundaries
 
     def circle(self, center_lat, center_lon, radius):
         """ Return a list of latitude and longitude points in degrees that
@@ -164,4 +193,3 @@ class RegionSpec:
             ll.append(xyz_to_latlon(P[i])) # Convert back to latlon
 
         return np.array(ll)
-
