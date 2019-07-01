@@ -57,11 +57,6 @@ class MeshHandler:
                 mesh.close()
                 
                 self.mesh = Dataset(fname, 'r', memory=nc_bytes)
-                if self._DEBUG_ > 2:
-                    print("DEBUG: Mesh's dimensions: ", fname)
-                    self.print_all_dimensions()
-                    print("DEBUG: Mesh's variables: ", fname)
-                    self.print_all_variables()
                 return True
             except OSError as E: 
                 print("ERROR: ", E)
