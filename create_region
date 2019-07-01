@@ -6,8 +6,7 @@ from limited_area.limited_area import LimitedArea
 
 if __name__ == "__main__":
     description = ("Create a limited area MPAS grid from a global MPAS grid"
-                   " and a file that specifies the limited area boundary or"
-                   " boundaries.")
+                   " and a file that specifies the regional area boundary.")
 
     epilog = ("For more information please see: "
              "https://github.com/MiCurry/MPAS-Limited-Area")
@@ -29,7 +28,8 @@ if __name__ == "__main__":
                           help='Points file specifying the MPAS regional area',
                           type=str)
     required.add_argument('grid',
-                          help='Global MPAS Grid File',
+                          help=('Global MPAS grid file. Either a grid.nc or'
+                                ' static.nc file'),
                           type=str)
 
     options.add_argument('-v', '--verbose',
