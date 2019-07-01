@@ -76,7 +76,7 @@ class LimitedArea():
             print("DEBUG: Region Spec has been generated")
             print("DEBUG: Region Name: ", name)
             print("DEBUG: In Point: ", inPoint)
-            print("DEBUG: # of points: ", len(boundaries))
+            print("DEBUG: # of boundaries: ", len(boundaries))
 
         # For each mesh, create a regional mesh and save it
         print('\n')
@@ -237,7 +237,7 @@ class LimitedArea():
                        and those that are outside.
         """
         if self._DEBUG_ > 1:
-            print("DEBUG: Flood filling with flood_fill!")
+            print("DEBUG: Flood filling with flood_fill")
 
         stack = [inCell]
         while len(stack) > 0:
