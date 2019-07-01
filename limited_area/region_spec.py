@@ -25,10 +25,10 @@ else:
 
 def normalize_cords(lat, lon):
     """ Returned lat, and lon to be in radians and the same 
-    range as MPAS - Lat: -pi/2 to pi/2 - LonL 0 to 2*pi
+    range as MPAS - Lat: -pi/2 to pi/2 - Lon: 0 to 2*pi
        
     Lat - Latitude in degrees
-    Lon - Lontitude in degrees
+    Lon - Longitude in degrees
 
     """
     lat *= np.pi / 180.0
@@ -47,10 +47,10 @@ class RegionSpec:
     And will then return, the following:
 
     filename         - Output filename (if desired and specified in the specification file)
-    points array     - A 1-dimensional list of lat lon cords specificying boundry 
+    points array     - A 1-dimensional list of lat lon cords specifying boundary 
                        in counter clockwise order
     in-point         - pair of points that inside the boundary
-    algorithm choice - The desired algorithm for choosing bondary points and 
+    algorithm choice - The desired algorithm for choosing boundary points and 
                        relaxation layers (if specified within the specification file)
     """
     # TODO: Update __init__ with fileName
@@ -67,8 +67,8 @@ class RegionSpec:
     def gen_spec(self, fileName, *args, **kwargs):
         """ Generate the specifications and return, name, in point and a list of points.
 
-        Call the method we bound above, and then do any proccessing here
-        to do things like convert cordinates to radians, or anything else
+        Call the method we bound above, and then do any processing here
+        to do things like convert coordinates to radians, or anything else
         we need to get return contract variables.
         
         fileName - The file that specifies the region
@@ -85,7 +85,7 @@ class RegionSpec:
 
         if self.type == 'custom':
             if self._DEBUG_ > 0:
-                print("DEBUG: Using a custom poloygon for generating a region")
+                print("DEBUG: Using a custom polygon for generating a region")
 
             self.points = np.array(self.points)
 
@@ -151,7 +151,7 @@ class RegionSpec:
 
         center_lat - Circle center latitude in radians
         center_lon - Circle center longitude in radians
-        radius     - Radius of desire circle in radians upon the unit shpere
+        radius     - Radius of desire circle in radians upon the unit sphere
 
         """
 
@@ -187,7 +187,7 @@ class RegionSpec:
             P.append(rotate_about_vector(P0, C, r))
 
         ll = []
-        # TODO: The efficency here can be improved for memory
+        # TODO: The efficiency here can be improved for memory
         # and probably comp time
         for i in range(len(P)):
             ll.append(xyz_to_latlon(P[i])) # Convert back to latlon

@@ -360,16 +360,16 @@ def scan(arr):
 
 def reindex_field(field, mmap):
     """ Re-index fields to be in range of their dimensions """
-    print('reindxing field ...', end=' '); sys.stdout.flush()
+    print('reindexing field ...', end=' '); sys.stdout.flush()
     return mmap[field[:]-1]
 
 
 
 def latlon_to_xyz(lat, lon, radius):
-    """ Calculate and return x, y, z cordinations of lat, lon on the sphere that has
+    """ Calculate and return x, y, z coordinations of lat, lon on the sphere that has
     radius, radius.
     lat - Latitude
-    lon - Longitutde
+    lon - Longitude
     radius - Radius of sphere
     """
     z = radius * np.sin(lat)
