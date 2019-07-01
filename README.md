@@ -192,6 +192,20 @@ Point: 40.0, -105.5
 radius: 4000
 ```
 
+## Ellipse<a name='ellipse'>
+
+The ellipse method produces an ellipse shape region and is specified by a
+semi-major and semi-minor axis length, as well as an orientation:
+
+```
+Name: my_ellipse
+Type: ellipse
+Point: 55.0, 93.0        # Latitude, Longitude (degrees)
+Semi-major-axis: 6500000 # Meters
+Semi-minor-axis: 3000000 # Meters
+Orientation-angle: 15.0     # Clockwise rotation from due north (degrees)
+```
+
 ## Equatorial Channel
 
 The equatorial channel method can be used to specify a channel parallel to the
@@ -217,7 +231,7 @@ Thus, it is **highly** recommended to only use the channel method upon
 `static.nc` files. Doing so will avoid this problem and will also save time
 interpolating the static fields on different regions.
 
-# Reporting Bugs
+# Reporting Bugs<a name="bugs">
 
 If you encounter a bug and wish to report it, please do so on this Github
 repository's Issues page! Thank you!
