@@ -86,9 +86,9 @@ class LimitedArea():
         # A specification may have multiple, discontiguous boundaries,
         # so, create a unmarked, filled bdyMaskCell and pass it to
         # mark_boundary for each boundary.
-        print('Marking boundary... ', end=''); sys.stdout.flush()
+        print('Marking ', end=''); sys.stdout.flush()
         bdyMaskCell = np.full(self.mesh.nCells, self.UNMARKED)
-        i = 0
+        i = 1
         for boundary in boundaries:
             print("boundary ", i, "... ", end=''); sys.stdout.flush(); i += 1
             bdyMaskCell = self.mark_boundary(self.mesh, boundary, bdyMaskCell)
