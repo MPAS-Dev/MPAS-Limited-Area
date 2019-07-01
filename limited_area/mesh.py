@@ -57,11 +57,6 @@ class MeshHandler:
                 mesh.close()
                 
                 self.mesh = Dataset(fname, 'r', memory=nc_bytes)
-                if self._DEBUG_ > 2:
-                    print("DEBUG: Mesh's dimensions: ", fname)
-                    self.print_all_dimensions()
-                    print("DEBUG: Mesh's variables: ", fname)
-                    self.print_all_variables()
                 return True
             except OSError as E: 
                 print("ERROR: ", E)
@@ -365,16 +360,16 @@ def scan(arr):
 
 def reindex_field(field, mmap):
     """ Re-index fields to be in range of their dimensions """
-    print('reindxing field ...', end=' '); sys.stdout.flush()
+    print('reindexing field ...', end=' '); sys.stdout.flush()
     return mmap[field[:]-1]
 
 
 
 def latlon_to_xyz(lat, lon, radius):
-    """ Calculate and return x, y, z cordinations of lat, lon on the sphere that has
+    """ Calculate and return x, y, z coordinations of lat, lon on the sphere that has
     radius, radius.
     lat - Latitude
-    lon - Longitutde
+    lon - Longitude
     radius - Radius of sphere
     """
     z = radius * np.sin(lat)

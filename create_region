@@ -6,10 +6,10 @@ from limited_area.limited_area import LimitedArea
 
 if __name__ == "__main__":
     description = ("Create a limited area MPAS grid from a global MPAS grid"
-                   " and a file that specifies the limited area boundry or"
-                   " boundries.")
+                   " and a file that specifies the limited area boundary or"
+                   " boundaries.")
 
-    epilog = ("For more infromation please see: "
+    epilog = ("For more information please see: "
              "https://github.com/MiCurry/MPAS-Limited-Area")
 
 

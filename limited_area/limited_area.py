@@ -27,18 +27,16 @@ class LimitedArea():
 
         Check to see if mesh file exists and it is the correct type. Check to
         see that the region file exist and finally set the regionSpec to the
-        requeste regionFormat
+        requested regionFormat
 
 
         Keyword arguments:
         mesh_files   -- Path to a valid MPAS Mesh file
-        region       -- Path to a region specification - Can be either a points 
-                        file or a shapeFile (Which is currently not 
-                        implemented!)
+        region       -- Path to pts file region specification 
 
         DEBUG         -- Debug value used to turn on debug output, default == 0
         markNeighbors -- Algorithm choice for choosing relaxation layers - Default
-                         is mark neighbor serach
+                         is mark neighbor search
         """ 
 
         # Keyword arguments
@@ -78,7 +76,7 @@ class LimitedArea():
             print("DEBUG: Region Spec has been generated")
             print("DEBUG: Region Name: ", name)
             print("DEBUG: In Point: ", inPoint)
-            print("DEBUG: # of points: ", len(points))
+            print("DEBUG: # of points: ", len(boundaries))
 
         # For each mesh, create a regional mesh and save it
         print('\n')
@@ -103,7 +101,7 @@ class LimitedArea():
         bdyMaskCell = self.flood_fill(self.mesh, inCell, bdyMaskCell)
 
         # Mark the neighbors
-        print('Creating boundary laryer:', end=' '); sys.stdout.flush()
+        print('Creating boundary layer:', end=' '); sys.stdout.flush()
         for layer in range(1, self.num_boundary_layers + 1):
             print(layer, ' ...', end=' '); sys.stdout.flush()
             self.mark_neighbors(self.mesh, layer, bdyMaskCell, inCell=inCell)
@@ -125,14 +123,14 @@ class LimitedArea():
         bdyMaskCell_cp = bdyMaskCell
 
         # Mark the edges
-        print('Markin region edges ...')
+        print('Marking region edges ...')
         bdyMaskEdge = self.mark_edges(self.mesh,
                                       bdyMaskCell,
                                       *args,
                                       **kwargs)
 
-        # Mark the verticies
-        print('Markin region verteices...')
+        # Mark the vertices
+        print('Marking region vertices...')
         bdyMaskVertex = self.mark_vertices(self.mesh,
                                            bdyMaskCell,
                                            *args,
@@ -140,7 +138,7 @@ class LimitedArea():
 
 
         # Subset the grid into a new region:
-        print('Subseting mesh fields into the specified region mesh...')
+        print('Subsetting mesh fields into the specified region mesh...')
         regionFname = self.create_regional_fname(name, self.mesh)
         regionalMesh = self.mesh.subset_fields(regionFname,
                                           bdyMaskCell,
