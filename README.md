@@ -48,7 +48,7 @@ or
 `create_region` can create regional subsets from global MPAS grid files or MPAS
 static files.
 
-At any point in time, you can pass the `-h` or `--help` flag to `limited-area`
+At any point in time, you can pass the `-h` or `--help` flag to `create_region`
 to generate a help message, usage statement and a list of options. The command
 line usage is:
 
