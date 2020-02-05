@@ -175,21 +175,21 @@ An example circle points specification would look like the following:
 ```
 Name: my_circle
 Type: circle
-Point: -40.0, 105.5
-Radius: 3000
+Point: 53.5, -4.5
+Radius: 655000.0 # Meters
 ```
 
 Here `Point` is used to specify the center of the circle and `Radius` is used
-to specify the radius of the circle (in kilometers). **NOTE**: The radius must
+to specify the radius of the circle (in meters). **NOTE**: The radius must
 be larger then at least the smallest grid cell, else unexpected behavior will
 occur.
 
-An example circle method for defining a circle around Boulder, Colorado is:
+An example circle method for defining a circle around Colorado, USA is:
 ```
-Name: boulder
+Name: colorado
 Type: circle
-Point: 40.0, -105.5
-radius: 4000
+Point: 40.0, -105.0
+radius: 400000.0
 ```
 
 ## Ellipse<a name='ellipse'>
