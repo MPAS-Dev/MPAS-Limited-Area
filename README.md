@@ -1,4 +1,4 @@
-# MPAS Limited-Area 
+# MPAS Limited-Area - v1.1
 
 MPAS Limited-Area is a python tool that takes an MPAS global grid and produces
 a regional area grid given a region specifications. Regions can be specified in
@@ -235,3 +235,15 @@ interpolating the static fields on different regions.
 
 If you encounter a bug and wish to report it, please do so on this Github
 repository's Issues page! Thank you!
+
+# Release Notes <a name="release">
+
+## 1.1
+
+* Change units for specifying the radius in the circle points method from
+  kilometers to meters.
+
+## 1.0
+
+* Initial public release
+* Subsets mpas grid.nc and static.nc files
