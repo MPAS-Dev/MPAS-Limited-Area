@@ -108,8 +108,8 @@ class RegionSpec:
                                                     self.in_point[0],
                                                     self.in_point[1])
 
-            # Convert to meters, then divide by radius to get radius upon sphere w/ r = 1
-            self.radius = (self.radius * 1000) / EARTH_RADIUS
+            # Divide by sphere radius to get radius upon sphere
+            self.radius = self.radius / EARTH_RADIUS
             self.points = self.circle(self.in_point[0], self.in_point[1], self.radius)
             return self.name, self.in_point, [self.points.flatten()]
         elif self.type == 'ellipse':

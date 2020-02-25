@@ -1,4 +1,4 @@
-# MPAS Limited-Area 
+# MPAS Limited-Area - v1.1
 
 MPAS Limited-Area is a python tool that takes an MPAS global grid and produces
 a regional area grid given a region specifications. Regions can be specified in
@@ -175,21 +175,21 @@ An example circle points specification would look like the following:
 ```
 Name: my_circle
 Type: circle
-Point: -40.0, 105.5
-Radius: 3000
+Point: 53.5, -4.5
+Radius: 655000.0 # Meters
 ```
 
 Here `Point` is used to specify the center of the circle and `Radius` is used
-to specify the radius of the circle (in kilometers). **NOTE**: The radius must
+to specify the radius of the circle (in meters). **NOTE**: The radius must
 be larger then at least the smallest grid cell, else unexpected behavior will
 occur.
 
-An example circle method for defining a circle around Boulder, Colorado is:
+An example circle method for defining a circle around Colorado, USA is:
 ```
-Name: boulder
+Name: colorado
 Type: circle
-Point: 40.0, -105.5
-radius: 4000
+Point: 40.0, -105.0
+radius: 400000.0
 ```
 
 ## Ellipse<a name='ellipse'>
@@ -235,3 +235,15 @@ interpolating the static fields on different regions.
 
 If you encounter a bug and wish to report it, please do so on this Github
 repository's Issues page! Thank you!
+
+# Release Notes <a name="release">
+
+## 1.1
+
+* Change units for specifying the radius in the circle points method from
+  kilometers to meters.
+
+## 1.0
+
+* Initial public release
+* Subsets mpas grid.nc and static.nc files
