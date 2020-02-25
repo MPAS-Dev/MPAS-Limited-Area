@@ -322,7 +322,10 @@ class MeshHandler:
                     print('Done!')
                 else:
                     print('')
-                    region.mesh.variables[var][:] = arrTemp[glbBdyCellIDs]
+                    if 'Time' in region.mesh.variables[var].dimensions:
+                        region.mesh.variables[var][:] = arrTemp[:, glbBdyCellIDs]
+                    else:
+                        region.mesh.variables[var][:] = arrTemp[glbBdyCellIDs]
             elif 'nEdges' in self.mesh.variables[var].dimensions:
                 if var in indexingFields:
                     region.mesh.variables[var][:] = reindex_field(arrTemp[glbBdyEdgeIDs], 
@@ -330,7 +333,10 @@ class MeshHandler:
                     print('Done!')
                 else:
                     print('')
-                    region.mesh.variables[var][:] = arrTemp[glbBdyEdgeIDs]
+                    if 'Time' in region.mesh.variables[var].dimensions:
+                        region.mesh.variables[var][:] = arrTemp[:, glbBdyEdgeIDs]
+                    else:
+                        region.mesh.variables[var][:] = arrTemp[glbBdyEdgeIDs]
             elif 'nVertices' in self.mesh.variables[var].dimensions:
                 if var in indexingFields:
                     region.mesh.variables[var][:] = reindex_field(arrTemp[glbBdyVertexIDs], 
@@ -338,7 +344,10 @@ class MeshHandler:
                     print('Done!')
                 else:
                     print('')
-                    region.mesh.variables[var][:] = arrTemp[glbBdyVertexIDs]
+                    if 'Time' in region.mesh.variables[var].dimensions:
+                        region.mesh.variables[var][:] = arrTemp[:, glbBdyVertexIDs]
+                    else:
+                        region.mesh.variables[var][:] = arrTemp[glbBdyVertexIDs]
             else:
                 print('')
                 region.mesh.variables[var][:] = arrTemp
