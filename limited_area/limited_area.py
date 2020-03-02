@@ -170,11 +170,21 @@ class LimitedArea():
         
 
     def create_regional_fname(self, name, mesh, **kwargs):
-        """ Generate the filename for the regional mesh file """
-        if 'static' in mesh.fname and not 'grid' in mesh.fname:
+        """ Generate the filename for the regional mesh file. Depending on what "type" of MPAS file
+        we are using, either static, grid or init, try to rename the region file as that type (i.e.
+        x1.2562.static.nc becomes name.static.nc).
+        
+        If a file name is ambiguous, or the file name does not contain: static, init, or grid,
+        rename the region file to be region. """
+        # Static files
+        if 'static' in mesh.fname and not ('grid' in mesh.fname or 'init' in mesh.fname):
             meshType = 'static'
-        elif 'grid' in mesh.fname and not 'static' in mesh.fname:
+        # Grid files
+        elif 'grid' in mesh.fname and not ('static' in mesh.fname or 'init' in mesh.fname):
             meshType = 'grid'
+        # Initialization Data
+        elif 'init' in mesh.fname and not ('static' in mesh.fname or 'grid' in mesh.fname):
+            meshType = 'init'
         else:
             meshType = 'region'
 
