@@ -164,7 +164,7 @@ class LimitedArea():
 
         # Subset the grid into a new region:
         print('Subsetting mesh fields into the specified region mesh...')
-        regionFname = self.create_regional_fname(name, self.mesh)
+        regionFname = self.create_regional_fname(name, self.mesh.fname)
         regionalMesh = self.mesh.subset_fields(regionFname,
                                           bdyMaskCell,
                                           bdyMaskEdge,
@@ -194,26 +194,10 @@ class LimitedArea():
         return name+'.graph.info'
         
 
-    def create_regional_fname(self, name, mesh, **kwargs):
-        """ Generate the filename for the regional mesh file. Depending on what "type" of MPAS file
-        we are using, either static, grid or init, try to rename the region file as that type (i.e.
-        x1.2562.static.nc becomes name.static.nc).
-        
-        If a file name is ambiguous, or the file name does not contain: static, init, or grid,
-        rename the region file to be region. """
-        # Static files
-        if 'static' in mesh.fname and not ('grid' in mesh.fname or 'init' in mesh.fname):
-            meshType = 'static'
-        # Grid files
-        elif 'grid' in mesh.fname and not ('static' in mesh.fname or 'init' in mesh.fname):
-            meshType = 'grid'
-        # Initialization Data
-        elif 'init' in mesh.fname and not ('static' in mesh.fname or 'grid' in mesh.fname):
-            meshType = 'init'
-        else:
-            meshType = 'region'
-
-        return name+'.'+meshType+'.nc'
+    def create_regional_fname(self, regionName, meshFileName, **kwargs):
+        """ Create the regional file name by prepending the regional name
+        (specified by Name: ) in the points file, to the meshFileName. """
+        return regionName+'.'+meshFileName
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
