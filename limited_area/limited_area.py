@@ -17,7 +17,7 @@ class LimitedArea():
     UNMARKED = 0
 
     def __init__(self,
-                 mesh_file,
+                 files,
                  region,
                  regionFormat='points',
                  format='NETCDF3_64BIT_OFFSET',
@@ -31,7 +31,9 @@ class LimitedArea():
 
 
         Keyword arguments:
-        mesh_files   -- Path to a valid MPAS Mesh file
+        files        -- Path to valid MPAS mesh files. If multiple files are given, the first file
+                        must contain mesh connectivity infromation, which will be used to subset
+                        itself, and all following files.
         region       -- Path to pts file region specification 
 
         DEBUG         -- Debug value used to turn on debug output, default == 0
@@ -39,18 +41,12 @@ class LimitedArea():
                          is mark neighbor search
         """ 
 
+        self.meshes = []
+
         # Keyword arguments
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.boundary = kwargs.get('markNeighbors', 'search')
         self.cdf_format = format
-
-        # Check to see that all of the meshes exists and that they are
-        # valid netCDF files.
-        if os.path.isfile(mesh_file):
-            self.mesh = MeshHandler(mesh_file, 'r', *args, **kwargs)
-        else:
-            print("ERROR: Mesh file was not found", mesh_file)
-            sys.exit(-1)
 
         # Check to see the points file exists and if it exists, then parse it
         # and see that is is specified correctly!
@@ -64,8 +60,36 @@ class LimitedArea():
         elif self.boundary == 'search':
             # Possibly faster for smaller regions
             self.mark_neighbors = self._mark_neighbors_search
-        
-        
+
+        # Check to see that all given mesh files, simply exist
+        for mesh in files:
+            if not os.path.isfile(mesh):
+                print("ERROR: Mesh file was not found", mesh_file)
+                sys.exit(-1)
+
+        if len(files) == 1:
+            self.mesh = MeshHandler(files[0], 'r', *args, **kwargs)
+            if self.mesh.check_grid():
+                self.mesh.load_vars()
+            else:
+                print("ERROR:", self.mesh.fname, "did not contain needed mesh connectivity information")
+                sys.exit(-1)
+            self.meshes.append(self.mesh)
+
+        else:
+            self.mesh = MeshHandler(files[0], 'r', *args, **kwargs)
+            if self.mesh.check_grid():
+                # Load the mesh connectivity variables needed to subset this mesh, and all the
+                # other ones
+                self.mesh.load_vars()
+            else:
+                print("ERROR:", self.mesh.fname, "did not contain needed mesh connectivity information")
+                print("ERROR: The first file must contain mesh connectivity information")
+                sys.exit(-1)
+
+            for mesh in files:
+                self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
+
     def gen_region(self, *args, **kwargs):
         """ Generate the boundary region of the given region for the given mesh(es). """
 
@@ -80,6 +104,7 @@ class LimitedArea():
 
         # For each mesh, create a regional mesh and save it
         print('\n')
+        # TODO: Update this print statement to be more consistent to what is happening
         print('Creating a regional mesh of ', self.mesh.fname)
 
         # Mark boundaries
