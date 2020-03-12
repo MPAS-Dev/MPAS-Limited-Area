@@ -77,11 +77,12 @@ class LimitedArea():
             self.meshes.append(self.mesh)
 
         else:
-            self.mesh = MeshHandler(files[0], 'r', *args, **kwargs)
+            self.mesh = MeshHandler(files.pop(0), 'r', *args, **kwargs)
             if self.mesh.check_grid():
                 # Load the mesh connectivity variables needed to subset this mesh, and all the
                 # other ones
                 self.mesh.load_vars()
+                self.meshes.append(self.mesh)
             else:
                 print("ERROR:", self.mesh.fname, "did not contain needed mesh connectivity information")
                 print("ERROR: The first file must contain mesh connectivity information")
@@ -164,28 +165,36 @@ class LimitedArea():
 
         # Subset the grid into a new region:
         print('Subsetting mesh fields into the specified region mesh...')
-        regionFname = self.create_regional_fname(name, self.mesh.fname)
-        regionalMesh = self.mesh.subset_fields(regionFname,
-                                          bdyMaskCell,
-                                          bdyMaskEdge,
-                                          bdyMaskVertex,
-                                          inside=self.INSIDE,
-                                          unmarked=self.UNMARKED,
-                                          format=self.cdf_format,
-                                          *args,
-                                          **kwargs)
+        for mesh in self.meshes:
+            print("\nSubsetting:", mesh.fname)
 
-        print('Copying global attributes...')
-        self.mesh.copy_global_attributes(regionalMesh)
+            regionFname = self.create_regional_fname(name, mesh.fname)
+            regionalMesh = mesh.subset_fields(regionFname,
+                                              bdyMaskCell,
+                                              bdyMaskEdge,
+                                              bdyMaskVertex,
+                                              self.INSIDE,
+                                              self.UNMARKED,
+                                              self.mesh,
+                                              format=self.cdf_format,
+                                              *args,
+                                              **kwargs)
+            print("Copying global attributes... ")
+            regionalMesh.copy_global_attributes(self.mesh)
+            print("Create a regional mesh:", regionFname)
 
-        print("Created a regional mesh: ", regionFname)
+            if mesh.check_grid():
+                regionalMeshConn = regionalMesh
+            else:
+                regionalMesh.mesh.close()
+                mesh.mesh.close()
+
 
         print('Creating graph partition file...', end=' '); sys.stdout.flush()
-        graphFname = regionalMesh.create_graph_file(self.create_partiton_fname(name, self.mesh,))
+        graphFname = regionalMeshConn.create_graph_file(self.create_partiton_fname(name, self.mesh,))
         print(graphFname)
 
-        self.mesh.mesh.close()
-        regionalMesh.mesh.close()
+        regionalMeshConn.mesh.close()
 
         return regionFname, graphFname
 
