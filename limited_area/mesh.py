@@ -11,6 +11,7 @@ calculations upon on MPAS grid. """
 class MeshHandler:
     """ Handle the operations related to NetCDF/MPAS grids. """
 
+
     def __init__(self, fname, mode, format='NETCDF3_64BIT_OFFSET', *args, **kwargs):
         """ Open fname with mode, for either reading, or creating
         
@@ -103,7 +104,7 @@ class MeshHandler:
             I/O calls.
         """
         if self._DEBUG_ > 2:
-            print("DEBUG: In Load Vars")
+            print("DEBUG:", self.fname, "in Load Vars")
 
         # Dimensions
         self.nCells = self.mesh.dimensions['nCells'].size
@@ -128,16 +129,16 @@ class MeshHandler:
         # Attributes
         self.sphere_radius = self.mesh.sphere_radius
 
-        self.variables = { 'latCells' : self.latCells,
-                           'lonCells' : self.lonCells,
-                           'nEdgesOnCell' : self.nEdgesOnCell,
-                           'cellsOnCell' : self.cellsOnCell,
-                           'cellsOnEdge' : self.cellsOnEdge,
-                           'cellsOnVertex' : self.cellsOnVertex,
-                           'indexToCellID' : self.indexToCellIDs,
-                           'indexToEdgeID' : self.indexToEdgeIDs,
+        self.variables = { 'latCells'        : self.latCells,
+                           'lonCells'        : self.lonCells,
+                           'nEdgesOnCell'    : self.nEdgesOnCell,
+                           'cellsOnCell'     : self.cellsOnCell,
+                           'cellsOnEdge'     : self.cellsOnEdge,
+                           'cellsOnVertex'   : self.cellsOnVertex,
+                           'indexToCellID'   : self.indexToCellIDs,
+                           'indexToEdgeID'   : self.indexToEdgeIDs,
                            'indexToVertexID' : self.indexToVertexIDs
-                         }
+                          }
 
 
     def nearest_cell(self, lat, lon):
@@ -222,6 +223,7 @@ class MeshHandler:
                       bdyMaskVertex,
                       inside,
                       unmarked,
+                      mesh,
                       format='NETCDF3_64BIT_OFFSET',
                       *args, 
                       **kwargs):
@@ -256,9 +258,9 @@ class MeshHandler:
         indexingFields['edgesOnVertex'] = bdyMaskEdge
         indexingFields['cellsOnVertex'] = bdyMaskCell
 
-        glbBdyCellIDs = self.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
-        glbBdyEdgeIDs = self.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
-        glbBdyVertexIDs = self.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
+        glbBdyCellIDs =   mesh.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
+        glbBdyEdgeIDs =   mesh.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
+        glbBdyVertexIDs = mesh.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
 
 
         if self._DEBUG_ > 0:
@@ -270,11 +272,11 @@ class MeshHandler:
         # len(bdyIndexToCellIDs) == nCells, then the specification was probably not
         # specified correctly
         force = False
-        if len(glbBdyCellIDs) == self.nCells and not force:
+        if len(glbBdyCellIDs) == mesh.nCells and not force:
             print("ERROR: The number of Cells in the specified region ",
                   "(", len(glbBdyCellIDs), ")")
             print("ERROR: appears to be equal number of cells in the global mesh",
-                  "(", self.nCells, ")")
+                  "(", mesh.nCells, ")")
             print("ERROR: which means there was perhaps a problem in specifying the")
             print("ERROR: region. Please insure your region specification is correct")
             sys.exit(-1)
@@ -303,17 +305,18 @@ class MeshHandler:
 
         # Make boundary Mask's between 0 and the number of specified relaxation
         # layers
-        region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
-        region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
-        region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
+        if self.check_grid():
+            region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
+            region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
+            region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices'))
 
-        region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
-        region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
-        region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
+            region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1
+            region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
+            region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
 
-        scan(bdyMaskCell)
-        scan(bdyMaskEdge)
-        scan(bdyMaskVertex)
+            scan(bdyMaskCell)
+            scan(bdyMaskEdge)
+            scan(bdyMaskVertex)
 
         # Variables - Create Variables
         for var in self.mesh.variables:
@@ -338,8 +341,8 @@ class MeshHandler:
                 continue
 
             print("Copying variable ", var, "...", end=' ', sep=''); sys.stdout.flush()
-            if var in self.variables:
-                arrTemp = self.variables[var] # Use the pre-loaded variable if possible
+            if var in mesh.variables:
+                arrTemp = mesh.variables[var] # Use the pre-loaded variable if possible
             else:
                 arrTemp = self.mesh.variables[var][:] # Else, read it from disk
 
@@ -383,10 +386,12 @@ class MeshHandler:
 
         return region
 
-    def copy_global_attributes(self, region):
-        """ Copy the global attributes into the regional mesh, but not 'np' """
-        region.mesh.on_a_sphere = self.mesh.on_a_sphere
-        region.mesh.sphere_radius = self.mesh.sphere_radius
+    def copy_global_attributes(self, mesh):
+        """ Copy the global attributes from mesh, onto self """
+        if self._DEBUG_ > 1:
+            print("DEBUG: Copying global attributes from", mesh.fname, "to", self.fname)
+        self.mesh.on_a_sphere = mesh.mesh.on_a_sphere
+        self.mesh.sphere_radius = mesh.mesh.sphere_radius
 
 
 def scan(arr):
