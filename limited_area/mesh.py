@@ -11,6 +11,7 @@ calculations upon on MPAS grid. """
 class MeshHandler:
     """ Handle the operations related to NetCDF/MPAS grids. """
 
+
     def __init__(self, fname, mode, format='NETCDF3_64BIT_OFFSET', *args, **kwargs):
         """ Open fname with mode, for either reading, or creating
         
@@ -103,41 +104,41 @@ class MeshHandler:
             I/O calls.
         """
         if self._DEBUG_ > 2:
-            print("DEBUG: In Load Vars")
+            print("DEBUG:", self.fname, "in Load Vars")
 
         # Dimensions
-        self.nCells = self.mesh.dimensions['nCells'].size
-        self.nEdges = self.mesh.dimensions['nEdges'].size
-        self.maxEdges = self.mesh.dimensions['maxEdges'].size
-        self.nVertices = self.mesh.dimensions['nVertices'].size
-        self.vertexDegree = self.mesh.dimensions['vertexDegree'].size
+        MeshHandler.nCells = self.mesh.dimensions['nCells'].size
+        MeshHandler.nEdges = self.mesh.dimensions['nEdges'].size
+        MeshHandler.maxEdges = self.mesh.dimensions['maxEdges'].size
+        MeshHandler.nVertices = self.mesh.dimensions['nVertices'].size
+        MeshHandler.vertexDegree = self.mesh.dimensions['vertexDegree'].size
 
         # Variables
-        self.latCells = self.mesh.variables['latCell'][:]
-        self.lonCells = self.mesh.variables['lonCell'][:]
+        MeshHandler.latCells = self.mesh.variables['latCell'][:]
+        MeshHandler.lonCells = self.mesh.variables['lonCell'][:]
 
-        self.nEdgesOnCell = self.mesh.variables['nEdgesOnCell'][:]
-        self.cellsOnCell = self.mesh.variables['cellsOnCell'][:]
-        self.cellsOnEdge = self.mesh.variables['cellsOnEdge'][:]
-        self.cellsOnVertex = self.mesh.variables['cellsOnVertex'][:]
+        MeshHandler.nEdgesOnCell = self.mesh.variables['nEdgesOnCell'][:]
+        MeshHandler.cellsOnCell = self.mesh.variables['cellsOnCell'][:]
+        MeshHandler.cellsOnEdge = self.mesh.variables['cellsOnEdge'][:]
+        MeshHandler.cellsOnVertex = self.mesh.variables['cellsOnVertex'][:]
 
-        self.indexToCellIDs = self.mesh.variables['indexToCellID'][:]
-        self.indexToEdgeIDs = self.mesh.variables['indexToEdgeID'][:]
-        self.indexToVertexIDs = self.mesh.variables['indexToVertexID'][:]
+        MeshHandler.indexToCellIDs = self.mesh.variables['indexToCellID'][:]
+        MeshHandler.indexToEdgeIDs = self.mesh.variables['indexToEdgeID'][:]
+        MeshHandler.indexToVertexIDs = self.mesh.variables['indexToVertexID'][:]
 
         # Attributes
         self.sphere_radius = self.mesh.sphere_radius
 
-        self.variables = { 'latCells' : self.latCells,
-                           'lonCells' : self.lonCells,
-                           'nEdgesOnCell' : self.nEdgesOnCell,
-                           'cellsOnCell' : self.cellsOnCell,
-                           'cellsOnEdge' : self.cellsOnEdge,
-                           'cellsOnVertex' : self.cellsOnVertex,
-                           'indexToCellID' : self.indexToCellIDs,
-                           'indexToEdgeID' : self.indexToEdgeIDs,
-                           'indexToVertexID' : self.indexToVertexIDs
-                         }
+        MeshHandler.variables = { 'latCells'        : MeshHandler.latCells,
+                                  'lonCells'        : MeshHandler.lonCells,
+                                  'nEdgesOnCell'    : MeshHandler.nEdgesOnCell,
+                                  'cellsOnCell'     : MeshHandler.cellsOnCell,
+                                  'cellsOnEdge'     : MeshHandler.cellsOnEdge,
+                                  'cellsOnVertex'   : MeshHandler.cellsOnVertex,
+                                  'indexToCellID'   : MeshHandler.indexToCellIDs,
+                                  'indexToEdgeID'   : MeshHandler.indexToEdgeIDs,
+                                  'indexToVertexID' : MeshHandler.indexToVertexIDs
+                                }
 
 
     def nearest_cell(self, lat, lon):
@@ -256,9 +257,9 @@ class MeshHandler:
         indexingFields['edgesOnVertex'] = bdyMaskEdge
         indexingFields['cellsOnVertex'] = bdyMaskCell
 
-        glbBdyCellIDs = self.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
-        glbBdyEdgeIDs = self.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
-        glbBdyVertexIDs = self.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
+        glbBdyCellIDs =   MeshHandler.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
+        glbBdyEdgeIDs =   MeshHandler.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
+        glbBdyVertexIDs = MeshHandler.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
 
 
         if self._DEBUG_ > 0:
@@ -303,17 +304,18 @@ class MeshHandler:
 
         # Make boundary Mask's between 0 and the number of specified relaxation
         # layers
-        region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
-        region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
-        region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
+        if self.check_grid():
+            region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
+            region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
+            region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices'))
 
-        region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
-        region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
-        region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
+            region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1
+            region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
+            region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
 
-        scan(bdyMaskCell)
-        scan(bdyMaskEdge)
-        scan(bdyMaskVertex)
+            scan(bdyMaskCell)
+            scan(bdyMaskEdge)
+            scan(bdyMaskVertex)
 
         # Variables - Create Variables
         for var in self.mesh.variables:
@@ -338,8 +340,8 @@ class MeshHandler:
                 continue
 
             print("Copying variable ", var, "...", end=' ', sep=''); sys.stdout.flush()
-            if var in self.variables:
-                arrTemp = self.variables[var] # Use the pre-loaded variable if possible
+            if var in MeshHandler.variables:
+                arrTemp = MeshHandler.variables[var] # Use the pre-loaded variable if possible
             else:
                 arrTemp = self.mesh.variables[var][:] # Else, read it from disk
 
@@ -383,10 +385,12 @@ class MeshHandler:
 
         return region
 
-    def copy_global_attributes(self, region):
-        """ Copy the global attributes into the regional mesh, but not 'np' """
-        region.mesh.on_a_sphere = self.mesh.on_a_sphere
-        region.mesh.sphere_radius = self.mesh.sphere_radius
+    def copy_global_attributes(self, mesh):
+        """ Copy the global attributes from mesh, onto self """
+        if self._DEBUG_ > 1:
+            print("DEBUG: Copying global attributes from", mesh.fname, "to", self.fname)
+        self.mesh.on_a_sphere = mesh.mesh.on_a_sphere
+        self.mesh.sphere_radius = mesh.mesh.sphere_radius
 
 
 def scan(arr):
