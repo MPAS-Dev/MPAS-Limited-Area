@@ -27,11 +27,15 @@ if __name__ == "__main__":
     required.add_argument('points',
                           help='Points file specifying the MPAS regional area',
                           type=str)
-    required.add_argument('grid',
-                          help=('Global MPAS grid file. Either a grid.nc or'
-                                ' static.nc file'),
+    required.add_argument('files',
+                          help=('Global MPAS files to subset'),
+                          nargs='+',
                           type=str)
 
+    options.add_argument('-m', '--mesh',
+                         help='',
+                         type=str)
+                         
     options.add_argument('-v', '--verbose',
                          help='Turn on verbose setting 0-5',
                          type=int,
@@ -45,13 +49,13 @@ if __name__ == "__main__":
         print("DEBUG: DEBUG set to verbose level ", DEBUG, '\n')
 
     if DEBUG > 1:
-        print("DEBUG: Grid File: ", args.grid)
+        print("DEBUG: Grid Files: ", args.files)
         print("DEBUG: Points File: ", args.points)
 
 
     kwargs = { 'DEBUG' : DEBUG }
 
-    regional_area = LimitedArea(args.grid,
+    regional_area = LimitedArea(args.files,
                                 args.points,
                                 format='NETCDF3_64BIT_OFFSET',
                                 **kwargs)

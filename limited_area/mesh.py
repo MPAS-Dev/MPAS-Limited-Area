@@ -27,9 +27,14 @@ class MeshHandler:
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.fname = fname
 
+        if self._DEBUG_ > 2:
+            print("DEBUG: MeshHandler - Loading ", self.fname)
+
         if mode == 'r':
             if self.check_file(fname):
-                self._load_vars()
+                if self.check_grid():
+                    print("DEBUG: MeshHandler - ", self.fname, " contains mesh information")
+                    self._load_vars()
                 return
             else:
                 sys.exit(-1)
@@ -78,39 +83,68 @@ class MeshHandler:
             print("DEBUG: In Load Vars")
 
         # Dimensions
-        self.nCells = self.mesh.dimensions['nCells'].size
-        self.nEdges = self.mesh.dimensions['nEdges'].size
-        self.maxEdges = self.mesh.dimensions['maxEdges'].size
-        self.nVertices = self.mesh.dimensions['nVertices'].size
-        self.vertexDegree = self.mesh.dimensions['vertexDegree'].size
+        MeshHandler.nCells = self.mesh.dimensions['nCells'].size
+        MeshHandler.nEdges = self.mesh.dimensions['nEdges'].size
+        MeshHandler.maxEdges = self.mesh.dimensions['maxEdges'].size
+        MeshHandler.nVertices = self.mesh.dimensions['nVertices'].size
+        MeshHandler.vertexDegree = self.mesh.dimensions['vertexDegree'].size
 
         # Variables
-        self.latCells = self.mesh.variables['latCell'][:]
-        self.lonCells = self.mesh.variables['lonCell'][:]
+        MeshHandler.latCells = self.mesh.variables['latCell'][:]
+        MeshHandler.lonCells = self.mesh.variables['lonCell'][:]
 
-        self.nEdgesOnCell = self.mesh.variables['nEdgesOnCell'][:]
-        self.cellsOnCell = self.mesh.variables['cellsOnCell'][:]
-        self.cellsOnEdge = self.mesh.variables['cellsOnEdge'][:]
-        self.cellsOnVertex = self.mesh.variables['cellsOnVertex'][:]
+        MeshHandler.nEdgesOnCell = self.mesh.variables['nEdgesOnCell'][:]
+        MeshHandler.cellsOnCell = self.mesh.variables['cellsOnCell'][:]
+        MeshHandler.cellsOnEdge = self.mesh.variables['cellsOnEdge'][:]
+        MeshHandler.cellsOnVertex = self.mesh.variables['cellsOnVertex'][:]
 
-        self.indexToCellIDs = self.mesh.variables['indexToCellID'][:]
-        self.indexToEdgeIDs = self.mesh.variables['indexToEdgeID'][:]
-        self.indexToVertexIDs = self.mesh.variables['indexToVertexID'][:]
+        MeshHandler.indexToCellIDs = self.mesh.variables['indexToCellID'][:]
+        MeshHandler.indexToEdgeIDs = self.mesh.variables['indexToEdgeID'][:]
+        MeshHandler.indexToVertexIDs = self.mesh.variables['indexToVertexID'][:]
 
         # Attributes
-        self.sphere_radius = self.mesh.sphere_radius
+        MeshHandler.sphere_radius = self.mesh.sphere_radius
 
-        self.variables = { 'latCells' : self.latCells,
-                           'lonCells' : self.lonCells,
-                           'nEdgesOnCell' : self.nEdgesOnCell,
-                           'cellsOnCell' : self.cellsOnCell,
-                           'cellsOnEdge' : self.cellsOnEdge,
-                           'cellsOnVertex' : self.cellsOnVertex,
-                           'indexToCellID' : self.indexToCellIDs,
-                           'indexToEdgeID' : self.indexToEdgeIDs,
-                           'indexToVertexID' : self.indexToVertexIDs
+        MeshHandler.variables = { 'latCells' : MeshHandler.latCells,
+                                  'lonCells' : MeshHandler.lonCells,
+                              'nEdgesOnCell' : MeshHandler.nEdgesOnCell,
+                               'cellsOnCell' : MeshHandler.cellsOnCell,
+                               'cellsOnEdge' : MeshHandler.cellsOnEdge,
+                             'cellsOnVertex' : MeshHandler.cellsOnVertex,
+                             'indexToCellID' : MeshHandler.indexToCellIDs,
+                             'indexToEdgeID' : MeshHandler.indexToEdgeIDs,
+                           'indexToVertexID' : MeshHandler.indexToVertexIDs
                          }
 
+    def check_grid(self):
+        """ Check to see if this mesh contains all needed grid information. 
+        Return True if it does, and False if does not """
+
+        grid_dims = ['nCells', 
+                     'nEdges', 
+                     'maxEdges',
+                     'nVertices',
+                     'vertexDegree']
+
+        grid_vars = ['latCell',
+                     'lonCell',
+                     'nEdgesOnCell',
+                     'cellsOnCell',
+                     'cellsOnEdge',
+                     'cellsOnVertex',
+                     'indexToCellID',
+                     'indexToEdgeID',
+                     'indexToVertexID']
+
+        for dim in grid_dims:
+            if not dim in self.mesh.dimensions:
+                return False
+
+        for var in grid_vars:
+            if not var in self.mesh.variables:
+                return False
+
+        return True
 
     def nearest_cell(self, lat, lon):
         """ Find the nearest cell of this mesh to lat and lon
@@ -214,6 +248,8 @@ class MeshHandler:
 
         # Don't pass on DEBUG to the regional mess - tone down output
         kwargs.pop('DEBUG')
+        if self._DEBUG_ > 2:
+            print("DEBUG: MeshHandler - Subsetting ", self.fname)
 
         indexingFields = {}
         indexingFields['indexToCellID'] = bdyMaskCell
@@ -228,9 +264,9 @@ class MeshHandler:
         indexingFields['edgesOnVertex'] = bdyMaskEdge
         indexingFields['cellsOnVertex'] = bdyMaskCell
 
-        glbBdyCellIDs = self.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
-        glbBdyEdgeIDs = self.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
-        glbBdyVertexIDs = self.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
+        glbBdyCellIDs = MeshHandler.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
+        glbBdyEdgeIDs = MeshHandler.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
+        glbBdyVertexIDs = MeshHandler.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
 
 
         if self._DEBUG_ > 0:
@@ -275,17 +311,18 @@ class MeshHandler:
 
         # Make boundary Mask's between 0 and the number of specified relaxation
         # layers
-        region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
-        region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
-        region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
+        if self.check_grid():
+            region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
+            region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
+            region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
 
-        region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
-        region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
-        region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
+            region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
+            region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
+            region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
 
-        scan(bdyMaskCell)
-        scan(bdyMaskEdge)
-        scan(bdyMaskVertex)
+            scan(bdyMaskCell)
+            scan(bdyMaskEdge)
+            scan(bdyMaskVertex)
 
         # Variables - Create Variables
         for var in self.mesh.variables:

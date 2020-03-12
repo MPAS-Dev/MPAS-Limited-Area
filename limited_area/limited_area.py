@@ -17,7 +17,7 @@ class LimitedArea():
     UNMARKED = 0
 
     def __init__(self,
-                 mesh_file,
+                 mesh_files,
                  region,
                  regionFormat='points',
                  format='NETCDF3_64BIT_OFFSET',
@@ -43,14 +43,30 @@ class LimitedArea():
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.boundary = kwargs.get('markNeighbors', 'search')
         self.cdf_format = format
+        self.meshes = []
 
-        # Check to see that all of the meshes exists and that they are
-        # valid netCDF files.
-        if os.path.isfile(mesh_file):
-            self.mesh = MeshHandler(mesh_file, 'r', *args, **kwargs)
-        else:
-            print("ERROR: Mesh file was not found", mesh_file)
-            sys.exit(-1)
+        for mesh in mesh_files:
+            if not os.path.isfile(mesh):
+                print("ERROR: Mesh file was not found", mesh)
+                sys.exit(-1)
+
+        # First file passed in should be the grid file
+        if len(mesh_files) == 1:
+            self.grid = MeshHandler(mesh_files[0], 'r', *args, **kwargs)
+            if not self.grid.check_grid():
+                print("ERROR: "+self.grid.fname+" did not contain needed mesh information")
+                print("ERROR: Please specify a mesh with mesh conectivity.")
+                sys.exit(-1)
+
+            self.meshes.append(self.grid)
+        else: 
+            self.grid = MeshHandler(mesh_files[0], 'r', *args, **kwargs)
+            if not self.grid.check_grid():
+                print("ERROR: "+self.grid.fname+" did not contain needed mesh information")
+                print("ERROR: The first mesh file specified must contain mesh connectivity information.")
+                sys.exit(-1)
+            for mesh in mesh_files:
+                self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
 
         # Check to see the points file exists and if it exists, then parse it
         # and see that is is specified correctly!
@@ -80,31 +96,31 @@ class LimitedArea():
 
         # For each mesh, create a regional mesh and save it
         print('\n')
-        print('Creating a regional mesh of ', self.mesh.fname)
+        print('Creating a regional mesh of ', self.grid.fname)
 
         # Mark boundaries
         # A specification may have multiple, discontiguous boundaries,
         # so, create a unmarked, filled bdyMaskCell and pass it to
         # mark_boundary for each boundary.
         print('Marking ', end=''); sys.stdout.flush()
-        bdyMaskCell = np.full(self.mesh.nCells, self.UNMARKED)
+        bdyMaskCell = np.full(self.grid.nCells, self.UNMARKED)
         i = 1
         for boundary in boundaries:
             print("boundary ", i, "... ", end=''); sys.stdout.flush(); i += 1
-            bdyMaskCell = self.mark_boundary(self.mesh, boundary, bdyMaskCell)
+            bdyMaskCell = self.mark_boundary(self.grid, boundary, bdyMaskCell)
 
         # Find the nearest cell to the inside point
-        inCell = self.mesh.nearest_cell(inPoint[0], inPoint[1])
+        inCell = self.grid.nearest_cell(inPoint[0], inPoint[1])
 
         # Flood fill from the inside point
         print('\nFilling region ...')
-        bdyMaskCell = self.flood_fill(self.mesh, inCell, bdyMaskCell)
+        bdyMaskCell = self.flood_fill(self.grid, inCell, bdyMaskCell)
 
         # Mark the neighbors
         print('Creating boundary layer:', end=' '); sys.stdout.flush()
         for layer in range(1, self.num_boundary_layers + 1):
             print(layer, ' ...', end=' '); sys.stdout.flush()
-            self.mark_neighbors(self.mesh, layer, bdyMaskCell, inCell=inCell)
+            self.mark_neighbors(self.grid, layer, bdyMaskCell, inCell=inCell)
         print('DONE!')
 
         if self._DEBUG_ > 2:
@@ -124,14 +140,14 @@ class LimitedArea():
 
         # Mark the edges
         print('Marking region edges ...')
-        bdyMaskEdge = self.mark_edges(self.mesh,
+        bdyMaskEdge = self.mark_edges(self.grid,
                                       bdyMaskCell,
                                       *args,
                                       **kwargs)
 
         # Mark the vertices
         print('Marking region vertices...')
-        bdyMaskVertex = self.mark_vertices(self.mesh,
+        bdyMaskVertex = self.mark_vertices(self.grid,
                                            bdyMaskCell,
                                            *args,
                                            **kwargs)
@@ -139,28 +155,33 @@ class LimitedArea():
 
         # Subset the grid into a new region:
         print('Subsetting mesh fields into the specified region mesh...')
-        regionFname = self.create_regional_fname(name, self.mesh)
-        regionalMesh = self.mesh.subset_fields(regionFname,
-                                          bdyMaskCell,
-                                          bdyMaskEdge,
-                                          bdyMaskVertex,
-                                          inside=self.INSIDE,
-                                          unmarked=self.UNMARKED,
-                                          format=self.cdf_format,
-                                          *args,
-                                          **kwargs)
-
-        print('Copying global attributes...')
-        self.mesh.copy_global_attributes(regionalMesh)
-
-        print("Created a regional mesh: ", regionFname)
+        i = 0
+        for mesh in self.meshes:
+            regionFname = self.create_regional_fname(name, mesh, i)
+            print("")
+            regionalMesh = mesh.subset_fields(regionFname,
+                                              bdyMaskCell,
+                                              bdyMaskEdge,
+                                              bdyMaskVertex,
+                                              inside=self.INSIDE,
+                                              unmarked=self.UNMARKED,
+                                              format=self.cdf_format,
+                                              *args,
+                                              **kwargs)
+            if regionalMesh.check_grid():
+                grid = regionalMesh
+            
+            print('Copying global attributes...')
+            mesh.copy_global_attributes(regionalMesh)
+#            mesh.mesh.close() 
+#            regionalMesh.mesh.close()
+            print("Created a regional mesh: ", regionFname)
+            i += 1
 
         print('Creating graph partition file...', end=' '); sys.stdout.flush()
-        graphFname = regionalMesh.create_graph_file(self.create_partiton_fname(name, self.mesh,))
+        graphFname = grid.create_graph_file(self.create_partiton_fname(name, self.grid))
         print(graphFname)
-
-        self.mesh.mesh.close()
-        regionalMesh.mesh.close()
+#        grid.mesh.close()
 
         return regionFname, graphFname
 
@@ -169,26 +190,8 @@ class LimitedArea():
         return name+'.graph.info'
         
 
-    def create_regional_fname(self, name, mesh, **kwargs):
-        """ Generate the filename for the regional mesh file. Depending on what "type" of MPAS file
-        we are using, either static, grid or init, try to rename the region file as that type (i.e.
-        x1.2562.static.nc becomes name.static.nc).
-        
-        If a file name is ambiguous, or the file name does not contain: static, init, or grid,
-        rename the region file to be region. """
-        # Static files
-        if 'static' in mesh.fname and not ('grid' in mesh.fname or 'init' in mesh.fname):
-            meshType = 'static'
-        # Grid files
-        elif 'grid' in mesh.fname and not ('static' in mesh.fname or 'init' in mesh.fname):
-            meshType = 'grid'
-        # Initialization Data
-        elif 'init' in mesh.fname and not ('static' in mesh.fname or 'grid' in mesh.fname):
-            meshType = 'init'
-        else:
-            meshType = 'region'
-
-        return name+'.'+meshType+'.nc'
+    def create_regional_fname(self, name, mesh, i, **kwargs):
+        return name+'.'+mesh.fname
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
