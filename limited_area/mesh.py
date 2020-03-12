@@ -29,7 +29,6 @@ class MeshHandler:
 
         if mode == 'r':
             if self.check_file(fname):
-                self._load_vars()
                 return
             else:
                 sys.exit(-1)
