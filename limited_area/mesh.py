@@ -66,6 +66,35 @@ class MeshHandler:
             print("ERROR: This file did not exist!")
             return False
 
+    def check_grid(self):
+        """ Check to see if this mesh contains all of the needed mesh connectivity infromation for
+        subsetting. If it does, return True, and if not, return False. """
+        mesh_dims = ['nCells',
+                     'nEdges',
+                     'maxEdges',
+                     'nVertices',
+                     'vertexDegree']
+
+        mesh_vars = ['latCell',
+                     'lonCell',
+                     'nEdgesOnCell',
+                     'cellsOnCell',
+                     'cellsOnEdge',
+                     'cellsOnVertex',
+                     'indexToCellID',
+                     'indexToEdgeID',
+                     'indexToVertexID',]
+
+        for dim in mesh_dims:
+            if not dim in self.mesh.dimensions:
+                return False
+
+        for var in mesh_vars:
+            if not var in self.mesh.variables:
+                return False
+
+        return True
+
     def _load_vars(self):
         """ Pre-load variables to avoid multiple, unnecessary IO calls 
             
