@@ -94,7 +94,7 @@ class MeshHandler:
 
         return True
 
-    def _load_vars(self):
+    def load_vars(self):
         """ Pre-load variables to avoid multiple, unnecessary IO calls 
             
             Pulling variables from a netCDF4 interface like the following:
