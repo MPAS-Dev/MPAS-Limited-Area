@@ -25,14 +25,18 @@ class LimitedArea():
                  **kwargs):
         """ Init function for Limited Area
 
-        Check to see if mesh file exists and it is the correct type. Check to
-        see that the region file exist and finally set the regionSpec to the
-        requested regionFormat
+        Check to see if all mesh files that were passed in to files exist
+        and that they are all the correct type. Check to see if the first
+        (or only) file contains mesh connectivity. If it is, then load its
+        connectivity fields.
 
+        Add the mesh connectivity mesh to self.mesh, and then add all meshes
+        to the self.meshes attribute. Thus, we can use self.mesh to subset all
+        meshes in the self.meshes attribute in gen_region.
 
         Keyword arguments:
         files        -- Path to valid MPAS mesh files. If multiple files are given, the first file
-                        must contain mesh connectivity infromation, which will be used to subset
+                        must contain mesh connectivity information, which will be used to subset
                         itself, and all following files.
         region       -- Path to pts file region specification 
 
@@ -92,7 +96,8 @@ class LimitedArea():
                 self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
 
     def gen_region(self, *args, **kwargs):
-        """ Generate the boundary region of the given region for the given mesh(es). """
+        """ Generate the boundary region of the specified region
+        and subset meshes in self.meshes """
 
         # Call the regionSpec to generate `name, in_point, boundaries`
         name, inPoint, boundaries= self.regionSpec.gen_spec(self.region_file, **kwargs)
@@ -163,8 +168,8 @@ class LimitedArea():
                                            **kwargs)
 
 
-        # Subset the grid into a new region:
-        print('Subsetting mesh fields into the specified region mesh...')
+        # Create subsets of all the meshes in self.meshes
+        print('Subsetting meshes...')
         for mesh in self.meshes:
             print("\nSubsetting:", mesh.fname)
 
@@ -184,6 +189,8 @@ class LimitedArea():
             print("Create a regional mesh:", regionFname)
 
             if mesh.check_grid():
+                # Save the regional mesh that contains graph connectivity to create the regional
+                # graph partition file below
                 regionalMeshConn = regionalMesh
             else:
                 regionalMesh.mesh.close()

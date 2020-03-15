@@ -5,8 +5,9 @@ import argparse
 from limited_area.limited_area import LimitedArea
 
 if __name__ == "__main__":
-    description = ("Create a limited area MPAS grid from a global MPAS grid"
-                   " and a file that specifies the regional area boundary.")
+    description = ("Create regional subsets of global MPAS meshes using "
+                   "a regional specification .pts file that specifies the "
+                   "regions boundary.")
 
     epilog = ("For more information please see: "
              "https://github.com/MiCurry/MPAS-Limited-Area")
@@ -15,20 +16,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=description,
                                      epilog=epilog)
 
-    required = parser.add_argument_group('Required', "Limited Area requires a"
-                                                     " MPAS Grid as well as a"
-                                                     " file specifying the"
-                                                     " limited area.")
+    required_description = ("create_region requires a MPAS mesh file that "
+                            "contains mesh connectivity fields and a file for "
+                            "specifying a regional area (.pts file). ")
 
-    options = parser.add_argument_group('Options', "Options to generating the"
-                                                   " MPAS limited area.")
+    required = parser.add_argument_group('Required', required_description)
 
+    options = parser.add_argument_group('Options')
 
     required.add_argument('points',
                           help='Points file specifying the MPAS regional area',
                           type=str)
     required.add_argument('files',
-                          help=('Global MPAS file(s) to be subset'),
+                          help=('Global MPAS file(s) to be subset. If multiple '
+                          'meshes are given, the first must contain mesh '
+                          'connectivity infromation that will be used to '
+                          'subset all files.'),
                           nargs='+',
                           type=str)
 
@@ -45,7 +48,7 @@ if __name__ == "__main__":
         print("DEBUG: DEBUG set to verbose level ", DEBUG, '\n')
 
     if DEBUG > 1:
-        print("DEBUG: Grid File: ", args.files)
+        print("DEBUG: Mesh Files: ", args.files)
         print("DEBUG: Points File: ", args.points)
 
 

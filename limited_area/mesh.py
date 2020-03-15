@@ -227,7 +227,7 @@ class MeshHandler:
                       format='NETCDF3_64BIT_OFFSET',
                       *args, 
                       **kwargs):
-        """ Subset the current mesh and return a new regional mesh with
+        """ Subset the mesh in self.mesh using mesh and return a new regional mesh with
         subsetted fields 
         
         regionalFname -- Desired filename for the regional subset
@@ -240,6 +240,7 @@ class MeshHandler:
         unmarked      -- The integer value that was used to mark cells,
                          edges, vertices as being 'outside' of the regional
                          mesh.
+        mesh          -- The mesh connectivity to use to subset self.mesh
         """
 
         # Don't pass on DEBUG to the regional mess - tone down output

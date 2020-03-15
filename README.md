@@ -1,8 +1,12 @@
 # MPAS Limited-Area - v2.1
 
-MPAS Limited-Area is a python tool that takes an MPAS global grid and produces
-a regional area grid given a region specifications. Regions can be specified in
-a number of different ways, making limited-area extensible and flexible.
+MPAS Limited-Area is a Python tool that takes MPAS global mesh files and
+can produce regional subsets meshes given a region specifications. The MPAS
+Limited-Area tool can create subsets MPAS mesh files that contain time variant,
+and time invariant fields, given a mesh connectivity fields are present.
+
+Regional specifications can be created in a number of ways, making limited-area
+extensible and flexible.
 
 # Download and Installing<a name="Installing"/>
 
@@ -18,8 +22,8 @@ $ setenv PATH ${PATH}:/path/to/MPAS-Limited-Area
 Then, run the `create_region` command-line script:
 ```Bash
 $ # Running the script with no arguments will produce a usage output
-Usage: create_region [-h] [-v VERBOSE] points grid create_region
-create_region: error: the following arguments are required: points, grid
+usage: create_region [-h] [-v VERBOSE] points files [files ...]
+create_region: error: the following arguments are required: points, files
 ```
 
 **Note**: It may be necessary to install the dependencies for this program if
@@ -51,20 +55,43 @@ to generate a help message, usage statement and a list of options. The command
 line usage is:
 
 ``` bash
-$ create_region [options] points grid
+usage: create_region [-h] [-v VERBOSE] points files [files ...]
 ```
 
-Where `points` is a points specification file, and where `grid` is a global
-MPAS NetCDF grid file. You'll find example points file in the points-example
-directory within the docs directory of this repository and below in the *Points
-Syntax* section.
+Where `points` is a points specification file, and where `files` is any number
+of global MPAS NetCDF mesh files with the first containing the mesh
+connectivity information that will be used subset itself and the others.
+
+You can find example points file in the points-example directory within the
+docs directory of this repository and below in the *Points Syntax* section.
+
+## Example Subsetting Mesh Files
+
+MPAS-Limited-Area can subset single or multiple files:
+
+``` bash
+# Subset a mesh file with only connectivity information:
+create_region conus.circle.pts x1.10242.grid.nc
+
+# Subset a static file with time invariant fields:
+create_region conus.circle.pts x1.10242.static.nc
+
+# Subset an initial conditions files with time invariant and time variant
+# fields:
+create_region conus.circle.pts x1.10242.init.nc
+
+# Subset files that do not contain mesh connectivity (as well as the mesh that
+# contains mesh connectivity fields):
+create_region conus.circle.pts x1.10242.init.nc diag.2019-01-28_00.00.00.nc
+diag.2019-01-28_03.00.00.nc diag.2019-01-28-06.00.00.nc
+```
 
 ## Notes on creating regions from .grid.nc files<a name="concave">
 
 When creating region subsets from `grid.nc` files, it is important to take a
-few things into account. Because of the way the init_atmosphere model 
+few things into account. Because of the way the init_atmosphere model
 interpolates some static data, it is possible to create incorrect static
-feilds on a concave mesh, during the static interpolation of the 
+fields on a concave mesh, during the static interpolation of the
 init_atmosphere model.
 
 Creating a mesh that is either **concave** in overall shape, or spans
@@ -115,7 +142,7 @@ appropriate value:
                of the circle and ellipse. `Point` is not used with the channel
                method.
 
-The value after `Name:` will be the name of the new regional mesh. 
+The value after `Name:` will be the name of the new regional mesh.
 
 If the `Name` within the pts file was set to be the following:
 ```
