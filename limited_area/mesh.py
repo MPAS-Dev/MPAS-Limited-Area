@@ -29,7 +29,7 @@ class MeshHandler:
         self.fname = fname
 
         if mode == 'r':
-            if self.check_file(fname):
+            if self.load_file(fname):
                 return
             else:
                 sys.exit(-1)
@@ -48,15 +48,12 @@ class MeshHandler:
             sys.exit(-1)
 
 
-    def check_file(self, fname):
-        """ Check to see that fname exists and it is a valid NetCDF file """
+    def load_file(self, fname):
+        """ Load fname using the netCDF4 Dataset class. If fname is not a valid NetCDF file, the
+        program will exit. """
         if os.path.isfile(fname):
             try:
-                mesh = open(fname, 'rb')
-                nc_bytes = mesh.read()
-                mesh.close()
-                
-                self.mesh = Dataset(fname, 'r', memory=nc_bytes)
+                self.mesh = Dataset(fname, 'r')
                 return True
             except OSError as E: 
                 print("ERROR: ", E)
