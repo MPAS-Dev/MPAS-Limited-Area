@@ -17,7 +17,7 @@ class LimitedArea():
     UNMARKED = 0
 
     def __init__(self,
-                 mesh_file,
+                 files,
                  region,
                  regionFormat='points',
                  format='NETCDF3_64BIT_OFFSET',
@@ -25,13 +25,19 @@ class LimitedArea():
                  **kwargs):
         """ Init function for Limited Area
 
-        Check to see if mesh file exists and it is the correct type. Check to
-        see that the region file exist and finally set the regionSpec to the
-        requested regionFormat
+        Check to see if all mesh files that were passed in to files exist
+        and that they are all the correct type. Check to see if the first
+        (or only) file contains mesh connectivity. If it is, then load its
+        connectivity fields.
 
+        Add the mesh connectivity mesh to self.mesh, and then add all meshes
+        to the self.meshes attribute. Thus, we can use self.mesh to subset all
+        meshes in the self.meshes attribute in gen_region.
 
         Keyword arguments:
-        mesh_files   -- Path to a valid MPAS Mesh file
+        files        -- Path to valid MPAS mesh files. If multiple files are given, the first file
+                        must contain mesh connectivity information, which will be used to subset
+                        itself, and all following files.
         region       -- Path to pts file region specification 
 
         DEBUG         -- Debug value used to turn on debug output, default == 0
@@ -39,18 +45,12 @@ class LimitedArea():
                          is mark neighbor search
         """ 
 
+        self.meshes = []
+
         # Keyword arguments
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.boundary = kwargs.get('markNeighbors', 'search')
         self.cdf_format = format
-
-        # Check to see that all of the meshes exists and that they are
-        # valid netCDF files.
-        if os.path.isfile(mesh_file):
-            self.mesh = MeshHandler(mesh_file, 'r', *args, **kwargs)
-        else:
-            print("ERROR: Mesh file was not found", mesh_file)
-            sys.exit(-1)
 
         # Check to see the points file exists and if it exists, then parse it
         # and see that is is specified correctly!
@@ -64,10 +64,40 @@ class LimitedArea():
         elif self.boundary == 'search':
             # Possibly faster for smaller regions
             self.mark_neighbors = self._mark_neighbors_search
-        
-        
+
+        # Check to see that all given mesh files, simply exist
+        for mesh in files:
+            if not os.path.isfile(mesh):
+                print("ERROR: Mesh file was not found", mesh_file)
+                sys.exit(-1)
+
+        if len(files) == 1:
+            self.mesh = MeshHandler(files[0], 'r', *args, **kwargs)
+            if self.mesh.check_grid():
+                self.mesh.load_vars()
+            else:
+                print("ERROR:", self.mesh.fname, "did not contain needed mesh connectivity information")
+                sys.exit(-1)
+            self.meshes.append(self.mesh)
+
+        else:
+            self.mesh = MeshHandler(files.pop(0), 'r', *args, **kwargs)
+            if self.mesh.check_grid():
+                # Load the mesh connectivity variables needed to subset this mesh, and all the
+                # other ones
+                self.mesh.load_vars()
+                self.meshes.append(self.mesh)
+            else:
+                print("ERROR:", self.mesh.fname, "did not contain needed mesh connectivity information")
+                print("ERROR: The first file must contain mesh connectivity information")
+                sys.exit(-1)
+
+            for mesh in files:
+                self.meshes.append(MeshHandler(mesh, 'r', *args, **kwargs))
+
     def gen_region(self, *args, **kwargs):
-        """ Generate the boundary region of the given region for the given mesh(es). """
+        """ Generate the boundary region of the specified region
+        and subset meshes in self.meshes """
 
         # Call the regionSpec to generate `name, in_point, boundaries`
         name, inPoint, boundaries= self.regionSpec.gen_spec(self.region_file, **kwargs)
@@ -80,6 +110,7 @@ class LimitedArea():
 
         # For each mesh, create a regional mesh and save it
         print('\n')
+        # TODO: Update this print statement to be more consistent to what is happening
         print('Creating a regional mesh of ', self.mesh.fname)
 
         # Mark boundaries
@@ -137,30 +168,40 @@ class LimitedArea():
                                            **kwargs)
 
 
-        # Subset the grid into a new region:
-        print('Subsetting mesh fields into the specified region mesh...')
-        regionFname = self.create_regional_fname(name, self.mesh)
-        regionalMesh = self.mesh.subset_fields(regionFname,
-                                          bdyMaskCell,
-                                          bdyMaskEdge,
-                                          bdyMaskVertex,
-                                          inside=self.INSIDE,
-                                          unmarked=self.UNMARKED,
-                                          format=self.cdf_format,
-                                          *args,
-                                          **kwargs)
+        # Create subsets of all the meshes in self.meshes
+        print('Subsetting meshes...')
+        for mesh in self.meshes:
+            print("\nSubsetting:", mesh.fname)
 
-        print('Copying global attributes...')
-        self.mesh.copy_global_attributes(regionalMesh)
+            regionFname = self.create_regional_fname(name, mesh.fname)
+            regionalMesh = mesh.subset_fields(regionFname,
+                                              bdyMaskCell,
+                                              bdyMaskEdge,
+                                              bdyMaskVertex,
+                                              self.INSIDE,
+                                              self.UNMARKED,
+                                              self.mesh,
+                                              format=self.cdf_format,
+                                              *args,
+                                              **kwargs)
+            print("Copying global attributes... ")
+            regionalMesh.copy_global_attributes(self.mesh)
+            print("Create a regional mesh:", regionFname)
 
-        print("Created a regional mesh: ", regionFname)
+            if mesh.check_grid():
+                # Save the regional mesh that contains graph connectivity to create the regional
+                # graph partition file below
+                regionalMeshConn = regionalMesh
+            else:
+                regionalMesh.mesh.close()
+                mesh.mesh.close()
+
 
         print('Creating graph partition file...', end=' '); sys.stdout.flush()
-        graphFname = regionalMesh.create_graph_file(self.create_partiton_fname(name, self.mesh,))
+        graphFname = regionalMeshConn.create_graph_file(self.create_partiton_fname(name, self.mesh,))
         print(graphFname)
 
-        self.mesh.mesh.close()
-        regionalMesh.mesh.close()
+        regionalMeshConn.mesh.close()
 
         return regionFname, graphFname
 
@@ -169,26 +210,10 @@ class LimitedArea():
         return name+'.graph.info'
         
 
-    def create_regional_fname(self, name, mesh, **kwargs):
-        """ Generate the filename for the regional mesh file. Depending on what "type" of MPAS file
-        we are using, either static, grid or init, try to rename the region file as that type (i.e.
-        x1.2562.static.nc becomes name.static.nc).
-        
-        If a file name is ambiguous, or the file name does not contain: static, init, or grid,
-        rename the region file to be region. """
-        # Static files
-        if 'static' in mesh.fname and not ('grid' in mesh.fname or 'init' in mesh.fname):
-            meshType = 'static'
-        # Grid files
-        elif 'grid' in mesh.fname and not ('static' in mesh.fname or 'init' in mesh.fname):
-            meshType = 'grid'
-        # Initialization Data
-        elif 'init' in mesh.fname and not ('static' in mesh.fname or 'grid' in mesh.fname):
-            meshType = 'init'
-        else:
-            meshType = 'region'
-
-        return name+'.'+meshType+'.nc'
+    def create_regional_fname(self, regionName, meshFileName, **kwargs):
+        """ Create the regional file name by prepending the regional name
+        (specified by Name: ) in the points file, to the meshFileName. """
+        return regionName+'.'+meshFileName
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
