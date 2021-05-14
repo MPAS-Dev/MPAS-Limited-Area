@@ -316,6 +316,16 @@ class MeshHandler:
             scan(bdyMaskEdge)
             scan(bdyMaskVertex)
 
+            # Create parent{Cell/Edge/Vertex/}ID fields. These fields will belong in the file that
+            # contains mesh connectivity information.
+            region.mesh.createVariable('parentCellID', 'i4', ('nCells',))
+            region.mesh.createVariable('parentEdgeID', 'i4', ('nEdges',))
+            region.mesh.createVariable('parentVertexID', 'i4', ('nVertices',))
+
+            region.mesh.variables['parentCellID'][:] = glbBdyCellIDs[:]
+            region.mesh.variables['parentEdgeID'][:] = glbBdyEdgeIDs[:]
+            region.mesh.variables['parentVertexID'][:] = glbBdyVertexIDs[:]
+
         # Variables - Create Variables
         for var in self.mesh.variables:
             # If we're subsetting a static file, don't copy variables for bdyMaskCell,
