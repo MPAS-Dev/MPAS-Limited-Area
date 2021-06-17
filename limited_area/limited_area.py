@@ -213,7 +213,7 @@ class LimitedArea():
     def create_regional_fname(self, regionName, meshFileName, **kwargs):
         """ Create the regional file name by prepending the regional name
         (specified by Name: ) in the points file, to the meshFileName. """
-        return regionName+'.'+meshFileName
+        return regionName+'.'+os.path.basename(meshFileName)
 
 
     # Mark_neighbors_search - Faster for smaller regions ??
