@@ -12,15 +12,15 @@ from limited_area.region_spec import RegionSpec
 
 class LimitedArea():
     """ Facilitate creating a regional MPAS mesh from a global MPAS mesh  """
-    num_boundary_layers = 8
     INSIDE = 1
     UNMARKED = 0
 
     def __init__(self,
                  mesh_file,
-                 region,
+                 region=None, # we don't need a file! can put kwargs
                  regionFormat='points',
                  format='NETCDF3_64BIT_OFFSET',
+                 num_boundary_layers=8, # allow it to change
                  *args,
                  **kwargs):
         """ Init function for Limited Area
@@ -52,25 +52,63 @@ class LimitedArea():
             print("ERROR: Mesh file was not found", mesh_file)
             sys.exit(-1)
 
-        # Check to see the points file exists and if it exists, then parse it
-        # and see that is is specified correctly!
+        # Personalize the number of boundary layers
+        self.num_boundary_layers = int(num_boundary_layers)
+        if self.num_boundary_layers < 8:
+            print('WARNING: Num boundary layers set to a value '
+                  'lower than the default 8. Set to: %d' %
+                  self.num_boundary_layers)
+
+        # <region> can now be a 'points.txt' file or None
+        # In the first case, we read the file using RegionSpec
+        # Otherwise, we read the describing region details from
+        # the kwargs of the LimitedArea constructor
         self.region_file = region
+        if region is None:
+            # if the region  is None, we won't read the arguments
+            # from a file, but assume the needed variables were
+            # passed as kwargs.
+            # TODO We have to check their validity!
+            # For now, I check that they are available and trust them
+            args_needed = ['region.name',
+                           'region.type'
+                           'region.in_point']
+            for ag in args_needed:
+                if ag not in kwargs:
+                    raise AttributeError(
+                        'ERROR! If you do not pass a region file, '
+                        'you then need to pass the region_info '
+                        'arguments as kwargs. The essential arguments are '
+                        ':\n' + repr(args_needed) + '\n but each type '
+                        'of region has extra needed args, like '
+                        'region.radius for region.type=circle.'
+                    )
+
+        # Check to see the points file exists and if it exists,
+        # then parse it and see that is is specified correctly!
         self.regionSpec = RegionSpec(*args, **kwargs)
 
         # Choose the algorithm to mark relaxation region
-        if self.boundary == None:
+        if self.boundary is None:
             # Possibly faster for larger regions
             self.mark_neighbors = self._mark_neighbors
         elif self.boundary == 'search':
             # Possibly faster for smaller regions
             self.mark_neighbors = self._mark_neighbors_search
-        
-        
+
     def gen_region(self, *args, **kwargs):
         """ Generate the boundary region of the given region for the given mesh(es). """
 
+        # We get name, inPoint and boundaries either from
+        # the self.region_file or from the already-computed
+        # values stored in self.region_info
+
         # Call the regionSpec to generate `name, in_point, boundaries`
-        name, inPoint, boundaries= self.regionSpec.gen_spec(self.region_file, **kwargs)
+        #   it will use the self.region_file if it is not None
+        #   otherwise, it will try to find all the needed parameters
+        #   in the kwargs (they have to be prefixed by "region.")
+        name, inPoint, boundaries = self.regionSpec.gen_spec(
+            self.region_file, **kwargs)
 
         if self._DEBUG_ > 0:
             print("DEBUG: Region Spec has been generated")
