@@ -109,18 +109,25 @@ class RegionSpec:
             # Let me manually set it from kwargs!
             self.type = kwargs['region.type']
             self.name = kwargs['region.name']
-            self.in_point = kwargs['region.in_point']
+            in_point = kwargs['region.in_point']
+            if isinstance(in_point, str):
+                self.in_point = in_point.split(',')
+            self.in_point = [float(x) for x in in_point]
+
             if self.type == 'custom':
-                self.points = kwargs['region.points']
+                points = kwargs['region.points']
+                if isinstance(points, str):
+                    points = points.split(',')
+                self.points = [float(x) for x in points]
             elif self.type == 'circle':
-                self.radius = kwargs['region.radius']
+                self.radius = float(kwargs['region.radius'])
             elif self.type == 'ellipse':
-                self.semimajor = kwargs['region.semimajor']
-                self.semiminor = kwargs['region.semiminor']
-                self.orientation = kwargs['region.orientation']
+                self.semimajor = float(kwargs['region.semimajor'])
+                self.semiminor = float(kwargs['region.semiminor'])
+                self.orientation = float(kwargs['region.orientation'])
             elif self.type == 'channel':
-                self.ulat = kwargs['region.ulat']
-                self.llat = kwargs['region.llat']
+                self.ulat = float(kwargs['region.ulat'])
+                self.llat = float(kwargs['region.llat'])
             else:
                 print("ERROR. Passed an invalid points type: ", self.type)
                 sys.exit(-1)

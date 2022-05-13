@@ -71,7 +71,7 @@ class LimitedArea():
             # TODO We have to check their validity!
             # For now, I check that they are available and trust them
             args_needed = ['region.name',
-                           'region.type'
+                           'region.type',
                            'region.in_point']
             for ag in args_needed:
                 if ag not in kwargs:
