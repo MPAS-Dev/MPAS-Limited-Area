@@ -112,11 +112,11 @@ class RegionSpec:
         else:
             # Let me manually set it from kwargs!
             self.type = kwargs['region.type']
-            self.name = kwargs['region.name']
             in_point = kwargs['region.in_point']
             if isinstance(in_point, str):
                 in_point = in_point.split(',')
             self.in_point = [float(x) for x in in_point]
+            self.name = kwargs.get('region.name', 'region')
 
             if self.type == 'custom':
                 points = kwargs['region.points']

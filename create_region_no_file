@@ -3,6 +3,8 @@
 from __future__ import absolute_import, division, print_function
 import argparse
 from limited_area.limited_area import LimitedArea
+import os
+
 
 if __name__ == "__main__":
     description = ("Create a limited area MPAS grid from a global MPAS grid"
@@ -15,14 +17,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=description,
                                      epilog=epilog)
 
+    parser.add_argument('grid',
+                        help=('Global MPAS grid file. Either a grid.nc or'
+                              ' static.nc file'),
+                        type=str)
 
     parser.add_argument('--points', default=None,
                         help='Points file specifying the MPAS regional area',
                         type=str)
 
-    parser.add_argument('grid',
-                        help=('Global MPAS grid file. Either a grid.nc or'
-                              ' static.nc file'),
+    parser.add_argument('--oregion', default=None,
+                        help=('Output name of the regional MPAS grid file '
+                              'that we will create. If we do not specify '
+                              '--ograph, it will automatically be set to '
+                              'ograph = oregion.replace(".nc", "") + ".graph.info"'),
+                        type=str)
+
+    parser.add_argument('--ograph', default=None,
+                        help=('Output name of the regional graph.info file '
+                              'that we will create. Will be ignored if '
+                              'we did not specify --oregion.'),
                         type=str)
 
     parser.add_argument('-v', '--verbose',
@@ -47,7 +61,6 @@ if __name__ == "__main__":
         print("DEBUG: Grid File: ", args.grid)
         print("DEBUG: Points File: ", args.points)
 
-
     kwargs = { 'DEBUG' : DEBUG , **new_args}
 
     print(kwargs)
@@ -57,11 +70,25 @@ if __name__ == "__main__":
                                 format='NETCDF3_64BIT_OFFSET',
                                 **kwargs)
 
-    regional_area.gen_region(**kwargs)
-
+    region_fname, graph_fname = regional_area.gen_region(**kwargs)
 
     if DEBUG > 0:
         print("DEBUG: Limited Area Creation Finished")
 
+    oregion = args.oregion
+    ograph = args.ograph
 
-
+    if oregion is not None:
+        pathregion = os.path.dirname(oregion)
+        os.system('mkdir -p ' + pathregion)
+        os.system('mv ' + region_fname + ' ' + oregion)
+        print('Region available in ' + oregion)
+        if ograph is None:
+            ograph = oregion.replace('.nc', '') + '.graph.info'
+        pathgraph = os.path.dirname(ograph)
+        os.system('mkdir -p ' + pathgraph)
+        os.system('mv ' + graph_fname + ' ' + ograph)
+        print('Graph.info available in ' + ograph)
+    else:
+        print('Region available in ' + region_fname)
+        print('Graph.info available in ' + graph_fname)
