@@ -91,11 +91,8 @@ class LimitedArea():
             self.mark_neighbors = self._mark_neighbors_search
 
     def gen_region(self, *args, **kwargs):
-        """ Generate the boundary region of the given region for the given mesh(es). """
-
-        # We get name, inPoint and boundaries either from
-        # the self.region_file or from the already-computed
-        # values stored in self.region_info
+        """ Generate the boundary region of the given
+        region for the given mesh(es). """
 
         # Call the regionSpec to generate `name, in_point, boundaries`
         #   it will use the self.region_file if it is not None
