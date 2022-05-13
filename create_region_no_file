@@ -1,18 +1,57 @@
 #!/usr/bin/env python
+"""
+Create a region without a points.txt file
 
+Based on create_region
+TODO not all options tested yet
+
+Modifications by Marta Gil Bardají 13/5/22 marta.gil@vortexfdc.com
+
+
+Example usage:
+* Same behaviour as create_region.
+    Needs to add "--points" before the name of the points file:
+
+        python create_region_no_file global.grid.nc --points points.txt
+
+* Want to control the path where the region is stored?
+    Use --oregion and --ograph. If we do specify --oregion, but not
+    --ograph the graph info will automatically be set to
+    ograph = oregion.replace(".nc", "") + ".graph.info"'
+
+        python create_region_no_file global.grid.nc
+            --points points.txt --oregion tmp2/myregion
+
+* Want to pass the "points.txt" arguments directly?
+
+    Don't pass a --points file and include all the needed details
+    to specify your region in the command. The syntax is region.<namearg>:<valuearg>
+    where <valuearg> is a single string, a float or a list of
+    comma-separated floats (depending on the <namearg>.
+    For example:
+
+        python create_region_no_file global.grid.nc region.type:circle
+            region.radius:200000 region.in_point:45,128
+
+    will create a circular region of 200km radius centered at
+    latitude 45 and longitude 128.
+"""
 from __future__ import absolute_import, division, print_function
 import argparse
 from limited_area.limited_area import LimitedArea
 import os
 
-
 if __name__ == "__main__":
     description = ("Create a limited area MPAS grid from a global MPAS grid"
-                   " and a file that specifies the regional area boundary.")
+                   " and a file that specifies the regional area boundary,"
+                   " or passing the arguments that define the region "
+                   " using the format region.<namearg>:<valuearg>. For "
+                   " example, adding: region.type:circle region.radius:200000 "
+                   " region.in_point:45,128 will create a circular region"
+                   " of 200km radius centered at latitude 45, longitude 128.")
 
     epilog = ("For more information please see: "
              "https://github.com/MiCurry/MPAS-Limited-Area")
-
 
     parser = argparse.ArgumentParser(description=description,
                                      epilog=epilog)
@@ -30,7 +69,8 @@ if __name__ == "__main__":
                         help=('Output name of the regional MPAS grid file '
                               'that we will create. If we do not specify '
                               '--ograph, it will automatically be set to '
-                              'ograph = oregion.replace(".nc", "") + ".graph.info"'),
+                              'ograph = oregion.replace(".nc", "") + '
+                              '".graph.info"'),
                         type=str)
 
     parser.add_argument('--ograph', default=None,
@@ -40,9 +80,9 @@ if __name__ == "__main__":
                         type=str)
 
     parser.add_argument('-v', '--verbose',
-                         help='Turn on verbose setting 0-5',
-                         type=int,
-                         default=0)
+                        help='Turn on verbose setting 0-5',
+                        type=int,
+                        default=0)
 
     args, unknown = parser.parse_known_args()
     print(args)
@@ -54,14 +94,14 @@ if __name__ == "__main__":
     print(new_args)
 
     DEBUG = args.verbose
-    if  DEBUG > 0:
+    if DEBUG > 0:
         print("DEBUG: DEBUG set to verbose level ", DEBUG, '\n')
 
     if DEBUG > 1:
         print("DEBUG: Grid File: ", args.grid)
         print("DEBUG: Points File: ", args.points)
 
-    kwargs = { 'DEBUG' : DEBUG , **new_args}
+    kwargs = {'DEBUG': DEBUG, **new_args}
 
     print(kwargs)
 
