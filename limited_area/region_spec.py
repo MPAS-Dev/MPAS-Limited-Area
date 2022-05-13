@@ -61,7 +61,8 @@ class RegionSpec:
         """
         # Keyword Args
         self._DEBUG_ = kwargs.get('DEBUG', 0)
-        self._gen_spec = create_bound_method(PointsParser, self)
+        #can I not do this here?
+        #self._gen_spec = create_bound_method(PointsParser, self)
 
     def gen_spec(self, fileName=None, *args, **kwargs):
         """ Generate the specifications and return, name, in point and a list of points.
@@ -84,6 +85,9 @@ class RegionSpec:
                        in counter-clockwise. ie: [lat1, lon1, lat2, lon2, ... , latN, lonN]
         """
 
+        print('Generating it :)')
+        print('Filename ' + fileName)
+        print(**kwargs)
         # TODO Check this syntax
         # I overwrite it if fileName is None
         if fileName is None:
@@ -91,7 +95,8 @@ class RegionSpec:
             # to the RegionSpec object by reading them from fileName
             # (applies the PointsParser function)
             # I can avoid it if instead I passed them as kwargs!
-            self._gen_spec(fileName, *args, **kwargs)
+            x = create_bound_method(PointsParser, self)
+            x(fileName, *args, **kwargs)
             # Which things does it set?
             # self.points = [] (empty or full for type=custom)
             # self._DEBUG_ = kwargs.get('DEBUG', 0)
