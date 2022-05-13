@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-"""
-Create a region without a points.txt file
+""" Extended create_region tool
+* Create a region without a points.txt file
+* Control the path and name of the output regional grid and graph.info files
+* Personalize the number of buffer layers added to the described region
 
 Based on create_region
 TODO not all options tested yet
@@ -35,6 +37,14 @@ Example usage:
 
     will create a circular region of 200km radius centered at
     latitude 45 and longitude 128.
+
+* Want to define a region that already includes the buffer region?
+
+    Pass a --num_boundary_layers value.
+
+        python create_region_no_file global.grid.nc region.type:circle
+            region.radius:500000 region.in_point:0,0 --num_boundary_layers=0
+
 """
 from __future__ import absolute_import, division, print_function
 import argparse
@@ -64,6 +74,15 @@ if __name__ == "__main__":
     parser.add_argument('--points', default=None,
                         help='Points file specifying the MPAS regional area',
                         type=str)
+
+    parser.add_argument('--num_boundary_layers', default=None,
+                        help='Number of layers to add as buffer (outside '
+                             'the region you specified). Not setting '
+                             'this option means that the default value '
+                             'of the LimitedArea class will be unchanged. '
+                             'This is currently 8, and passing a lower '
+                             'value will give a warning.',
+                        type=int)
 
     parser.add_argument('--oregion', default=None,
                         help=('Output name of the regional MPAS grid file '
@@ -102,6 +121,9 @@ if __name__ == "__main__":
         print("DEBUG: Points File: ", args.points)
 
     kwargs = {'DEBUG': DEBUG, **new_args}
+
+    if args.num_boundary_layers is not None:
+        kwargs['num_boundary_layers'] = int(args.num_boundary_layers)
 
     print(kwargs)
 
