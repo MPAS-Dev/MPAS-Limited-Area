@@ -86,11 +86,10 @@ class RegionSpec:
         """
 
         print('Generating it :)')
-        print('Filename ' + fileName)
-        print(**kwargs)
-        # TODO Check this syntax
+        print('Filename ' + str(fileName))
+        print(kwargs)
         # I overwrite it if fileName is None
-        if fileName is None:
+        if fileName is not None:
             # As I see it, this function assigns new attributes
             # to the RegionSpec object by reading them from fileName
             # (applies the PointsParser function)
@@ -116,7 +115,7 @@ class RegionSpec:
             self.name = kwargs['region.name']
             in_point = kwargs['region.in_point']
             if isinstance(in_point, str):
-                self.in_point = in_point.split(',')
+                in_point = in_point.split(',')
             self.in_point = [float(x) for x in in_point]
 
             if self.type == 'custom':
