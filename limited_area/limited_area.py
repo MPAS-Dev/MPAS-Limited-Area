@@ -59,11 +59,8 @@ class LimitedArea():
                   'lower than the default 8. Set to: %d' %
                   self.num_boundary_layers)
 
-        # <region> can now be a 'points.txt' file or None
-        # In the first case, we read the file using RegionSpec
-        # Otherwise, we read the describing region details from
-        # the kwargs of the LimitedArea constructor
         self.region_file = region
+        # <region> can now be a 'points.txt' file or None
         if region is None:
             # if the region  is None, we won't read the arguments
             # from a file, but assume the needed variables were
@@ -83,8 +80,6 @@ class LimitedArea():
                         'region.radius for region.type=circle.'
                     )
 
-        # Check to see the points file exists and if it exists,
-        # then parse it and see that is is specified correctly!
         self.regionSpec = RegionSpec(*args, **kwargs)
 
         # Choose the algorithm to mark relaxation region

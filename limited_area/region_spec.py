@@ -61,8 +61,7 @@ class RegionSpec:
         """
         # Keyword Args
         self._DEBUG_ = kwargs.get('DEBUG', 0)
-        #can I not do this here?
-        #self._gen_spec = create_bound_method(PointsParser, self)
+        self._gen_spec = create_bound_method(PointsParser, self)
 
     def gen_spec(self, fileName=None, *args, **kwargs):
         """ Generate the specifications and return, name, in point and a list of points.
@@ -94,8 +93,7 @@ class RegionSpec:
             # to the RegionSpec object by reading them from fileName
             # (applies the PointsParser function)
             # I can avoid it if instead I passed them as kwargs!
-            x = create_bound_method(PointsParser, self)
-            x(fileName, *args, **kwargs)
+            self._gen_spec(fileName, *args, **kwargs)
             # Which things does it set?
             # self.points = [] (empty or full for type=custom)
             # self._DEBUG_ = kwargs.get('DEBUG', 0)
@@ -110,7 +108,8 @@ class RegionSpec:
             #       coordinates of the Polygon vertices:
             #       self.points = [lat0, lon0, lat1, lon1, ...]
         else:
-            # Let me manually set it from kwargs!
+            # Let me manually set it from kwargs! and everything can
+            # continue in exactly the same way
             self.type = kwargs['region.type']
             in_point = kwargs['region.in_point']
             if isinstance(in_point, str):
