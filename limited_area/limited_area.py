@@ -19,6 +19,7 @@ class LimitedArea():
     def __init__(self,
                  mesh_file,
                  region,
+                 plotting,
                  regionFormat='points',
                  format='NETCDF3_64BIT_OFFSET',
                  *args,
@@ -42,15 +43,17 @@ class LimitedArea():
         # Keyword arguments
         self._DEBUG_ = kwargs.get('DEBUG', 0)
         self.boundary = kwargs.get('markNeighbors', 'search')
+        self.plotting = plotting
         self.cdf_format = format
 
         # Check to see that all of the meshes exists and that they are
         # valid netCDF files.
-        if os.path.isfile(mesh_file):
-            self.mesh = MeshHandler(mesh_file, 'r', *args, **kwargs)
-        else:
-            print("ERROR: Mesh file was not found", mesh_file)
-            sys.exit(-1)
+        if not self.plotting:
+            if os.path.isfile(mesh_file):
+                self.mesh = MeshHandler(mesh_file, 'r', *args, **kwargs)
+            else:
+                print("ERROR: Mesh file was not found", mesh_file)
+                sys.exit(-1)
 
         # Check to see the points file exists and if it exists, then parse it
         # and see that is is specified correctly!
@@ -70,7 +73,11 @@ class LimitedArea():
         """ Generate the boundary region of the given region for the given mesh(es). """
 
         # Call the regionSpec to generate `name, in_point, boundaries`
-        name, inPoint, boundaries= self.regionSpec.gen_spec(self.region_file, **kwargs)
+        name, inPoint, boundaries= self.regionSpec.gen_spec(self.region_file, self.plotting, **kwargs)
+
+        if self.plotting:
+            self.plot_region(inPoint, boundaries, name)
+            return
 
         if self._DEBUG_ > 0:
             print("DEBUG: Region Spec has been generated")
@@ -399,3 +406,167 @@ class LimitedArea():
 
         return bdyMaskCell
 
+
+    # Plot the specified region
+    def plot_region(self, inPoint, boundaries, region_name):
+        """ Create an plot showing the user-specified region.
+        The region boundary is plotted as a blue line on an orthographic
+        projection with a simple color-filled map background.
+
+        inPoint - A point that lies within the regional area.
+        boundaries - A list of lists of latitude and longitude coordinates
+                 of a boundary.
+
+                 [[lat0, lon0, lat1, lon1, lat2, lon2, ..., latN, lonN], [...]]
+
+        Note: Coordinates are in radians.
+        """
+
+        try:
+            import cartopy.crs as ccrs
+            import cartopy.feature as cfeature
+        except:
+            print('Could not import cartopy!')
+            return
+
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib.ticker as mticker
+            import matplotlib.patches as mpatches
+        except:
+            print('Could not import matplotlib!')
+            return
+
+        import math
+
+        rad2deg = 180.0 / math.pi
+
+        if len(boundaries) == 2:
+            proj = ccrs.PlateCarree(rad2deg * inPoint[1])
+            ax = plt.axes(projection=proj)
+
+            latbdy = np.concatenate((np.flip(boundaries[0][0::2]), boundaries[1][0::2])) * rad2deg
+            lonbdy = np.concatenate((np.flip(boundaries[0][1::2]), boundaries[1][1::2])) * rad2deg
+
+            ax.set_extent((-180.0, 180.0, -90.0, 90.0), crs=ccrs.PlateCarree())
+
+        else:
+            proj = ccrs.Stereographic(rad2deg * inPoint[0], rad2deg * inPoint[1])
+            ax = plt.axes(projection=proj)
+
+            lonbdy, latbdy = self.ccw_order(inPoint[1] * rad2deg, inPoint[0] * rad2deg,
+                boundaries[0][1::2] * rad2deg,boundaries[0][0::2] * rad2deg,
+                proj)
+
+            # Here we need a way of determining the "extent" (roughly, the diameter
+            # in meters) of the region given the latbdy and lonbdy arrays
+            extent = 3000000.0
+
+            scaling = 0.5 * 1.25
+            ax.set_extent([-scaling * extent, scaling * extent, -scaling * extent, scaling * extent], crs=proj)
+
+        # Place latbdy and lonbdy in clockwise order to cause the filled polygon
+        # to be everything except the region
+        latbdy = latbdy[::-1]
+        lonbdy = lonbdy[::-1]
+
+        ax.add_feature(cfeature.OCEAN)
+        ax.add_feature(cfeature.LAND)
+        ax.add_feature(cfeature.COASTLINE, linewidth=0.1)
+        ax.add_feature(cfeature.BORDERS, linewidth=0.1)
+        ax.add_feature(cfeature.LAKES, linewidth=0.1)
+        ax.add_feature(cfeature.RIVERS, linewidth=0.1)
+        ax.add_feature(cfeature.STATES, linewidth=0.1)
+
+        gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,
+                          linewidth=0.1, color='black', alpha=1.0, linestyle='--')
+
+        xticks = np.arange(-180, 180, 10)
+        yticks = np.arange(-90, 90, 10)
+
+        gl.ylocator = mticker.FixedLocator(yticks)
+        gl.xlocator = mticker.FixedLocator(xticks)
+
+        # Hack for plotting polygons when all latitudes are the same.
+        if np.min(latbdy) == np.max(latbdy):
+            if np.min(latbdy) == 0.0:
+               latbdy[0] = latbdy[0] + 0.000001
+            else:
+               latbdy[0] = latbdy[0] * 0.999999
+
+        nbdy = len(lonbdy)
+        poly_corners = np.zeros((nbdy+1, 2), np.float64)
+        poly_corners[0:nbdy,0] = np.asarray(lonbdy)
+        poly_corners[0:nbdy,1] = np.asarray(latbdy)
+        poly_corners[nbdy,:] = poly_corners[0,:]
+
+        poly = mpatches.Polygon(poly_corners, closed=True, ec='black', fill=True, lw=0.1, fc='black', alpha=0.3, transform=ccrs.Geodetic())
+        ax.add_patch(poly)
+
+        for boundary in boundaries:
+            latbdy = boundary[0::2] * rad2deg
+            lonbdy = boundary[1::2] * rad2deg
+
+            nbdy = len(lonbdy)
+
+            lon_corners = np.zeros((nbdy+1), np.float64)
+            lon_corners[0:nbdy] = np.asarray(lonbdy)
+            lon_corners[nbdy] = lon_corners[0]
+
+            lat_corners = np.zeros((nbdy+1), np.float64)
+            lat_corners[0:nbdy] = np.asarray(latbdy)
+            lat_corners[nbdy] = lat_corners[0]
+
+            plt.plot(lon_corners, lat_corners,
+                     color='blue', linewidth=0.5,
+                     transform=ccrs.Geodetic()
+                     )
+
+        print('Saving plot to region.png')
+        plt.savefig('region.png', dpi=150, bbox_inches='tight')
+
+
+    def plane_angle(self, ax, ay, bx, by, cx, cy):
+        """ Computes the angle between the vectors AB and AC.
+        """
+
+        import math
+
+        b = [bx - ax, by - ay]
+        c = [cx - ax, cy - ay]
+
+        arg = np.dot(b, c) / np.linalg.norm(b) / np.linalg.norm(c)
+        arg = max(-1.0,min(1.0, arg))
+        theta = math.acos(arg)
+        if np.cross([bx - ax, by - ay], [cx - ax, cy - ay]) < 0.0:
+            theta = -theta
+
+        return theta
+
+
+    def ccw_order(self, cenLon, cenLat, lons, lats, proj):
+        """ Place arrays of longitude and latitude in counter-clockwise (CCW)
+        order. The cenLon and cenLat values define a point that is within the
+        polygon described by the lons and lats arrays.
+
+        Latitude and longitude coordinates are in degrees.
+        """
+
+        import cartopy.crs as ccrs
+
+        cenLonProj, cenLatProj = proj.transform_point(cenLon, cenLat, ccrs.PlateCarree())
+        coordsProj = proj.transform_points(ccrs.PlateCarree(), lons, lats)
+
+        stride = max(1, int(lons.size / 360))
+
+        lonsProj = coordsProj[::stride,0]
+        latsProj = coordsProj[::stride,1]
+
+        sumangle = 0.0
+        for i in range(lonsProj.size):
+            sumangle = sumangle + self.plane_angle(cenLonProj, cenLatProj, lonsProj[i-1], latsProj[i-1], lonsProj[i], latsProj[i])
+
+        if sumangle > 0.0:
+            return lons, lats
+        else:
+            return lons[::-1], lats[::-1]

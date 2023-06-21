@@ -28,6 +28,8 @@ if __name__ == "__main__":
                           help='Points file specifying the MPAS regional area',
                           type=str)
     required.add_argument('grid',
+                          nargs='?',
+                          default=None,
                           help=('Global MPAS grid file. Either a grid.nc or'
                                 ' static.nc file'),
                           type=str)
@@ -37,8 +39,20 @@ if __name__ == "__main__":
                          type=int,
                          default=0)
 
+    options.add_argument('-p', '--plot',
+                         help='Produce a plot of the region rather than subsetting',
+                         action='store_true')
+
     args, unkown = parser.parse_known_args()
 
+    if args.plot:
+        print('===== Making a plot only! ======')
+    else:
+        if args.grid is None:
+            import sys
+            print('Error: If the -p/--plot option is not specified, a netCDF file')
+            print('  to subset must be provided.')
+            sys.exit(1)
 
     DEBUG = args.verbose
     if  DEBUG > 0:
@@ -53,6 +67,7 @@ if __name__ == "__main__":
 
     regional_area = LimitedArea(args.grid,
                                 args.points,
+                                args.plot,
                                 format='NETCDF3_64BIT_OFFSET',
                                 **kwargs)
 
