@@ -52,11 +52,7 @@ class MeshHandler:
         """ Check to see that fname exists and it is a valid NetCDF file """
         if os.path.isfile(fname):
             try:
-                mesh = open(fname, 'rb')
-                nc_bytes = mesh.read()
-                mesh.close()
-                
-                self.mesh = Dataset(fname, 'r', memory=nc_bytes)
+                self.mesh = Dataset(fname, 'r')
                 return True
             except OSError as E: 
                 print("ERROR: ", E)
