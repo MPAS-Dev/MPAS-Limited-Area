@@ -1,4 +1,4 @@
-# MPAS Limited-Area - v2.1
+# MPAS Limited-Area - v2.2
 
 MPAS Limited-Area is a python tool that takes an MPAS global grid and produces
 a regional area grid given a region specifications. Regions can be specified in
@@ -235,6 +235,9 @@ If you encounter a bug and wish to report it, please do so on this Github
 repository's Issues page! Thank you!
 
 # Release Notes <a name="release">
+
+## 2.2
+* Update usage of 'numpy' for compatibility with NumPy 2.x
 
 ## 2.1
 * Regions created from init.nc files are named as name.init.nc
