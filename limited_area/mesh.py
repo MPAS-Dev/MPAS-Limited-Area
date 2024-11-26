@@ -174,11 +174,11 @@ class MeshHandler:
                 nEdgesInterior = nEdgesInterior + 1
 
         with open(graphFname, 'w') as f:
-            f.write(repr(nCells)+' '+repr(nEdgesInterior)+'\n')
+            f.write(str(nCells)+' '+str(nEdgesInterior)+'\n')
             for i in range(nCells):
                 for j in range(nEdgesOnCell[i]):
                     if (cellsOnCell[i,j] > 0):
-                        f.write(repr(cellsOnCell[i,j])+' ')
+                        f.write(str(cellsOnCell[i,j])+' ')
                 f.write('\n')
 
         return graphFname
