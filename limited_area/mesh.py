@@ -11,6 +11,7 @@ calculations upon on MPAS grid. """
 class MeshHandler:
     """ Handle the operations related to NetCDF/MPAS grids. """
 
+
     def __init__(self, fname, mode, format='NETCDF3_64BIT_OFFSET', *args, **kwargs):
         """ Open fname with mode, for either reading, or creating
         
@@ -28,8 +29,7 @@ class MeshHandler:
         self.fname = fname
 
         if mode == 'r':
-            if self.check_file(fname):
-                self._load_vars()
+            if self.load_file(fname):
                 return
             else:
                 sys.exit(-1)
@@ -48,8 +48,9 @@ class MeshHandler:
             sys.exit(-1)
 
 
-    def check_file(self, fname):
-        """ Check to see that fname exists and it is a valid NetCDF file """
+    def load_file(self, fname):
+        """ Load fname using the netCDF4 Dataset class. If fname is not a valid NetCDF file, the
+        program will exit. """
         if os.path.isfile(fname):
             try:
                 self.mesh = Dataset(fname, 'r')
@@ -62,7 +63,36 @@ class MeshHandler:
             print("ERROR: This file did not exist!")
             return False
 
-    def _load_vars(self):
+    def check_grid(self):
+        """ Check to see if this mesh contains all of the needed mesh connectivity infromation for
+        subsetting. If it does, return True, and if not, return False. """
+        mesh_dims = ['nCells',
+                     'nEdges',
+                     'maxEdges',
+                     'nVertices',
+                     'vertexDegree']
+
+        mesh_vars = ['latCell',
+                     'lonCell',
+                     'nEdgesOnCell',
+                     'cellsOnCell',
+                     'cellsOnEdge',
+                     'cellsOnVertex',
+                     'indexToCellID',
+                     'indexToEdgeID',
+                     'indexToVertexID',]
+
+        for dim in mesh_dims:
+            if not dim in self.mesh.dimensions:
+                return False
+
+        for var in mesh_vars:
+            if not var in self.mesh.variables:
+                return False
+
+        return True
+
+    def load_vars(self):
         """ Pre-load variables to avoid multiple, unnecessary IO calls 
             
             Pulling variables from a netCDF4 interface like the following:
@@ -71,7 +101,7 @@ class MeshHandler:
             I/O calls.
         """
         if self._DEBUG_ > 2:
-            print("DEBUG: In Load Vars")
+            print("DEBUG:", self.fname, "in Load Vars")
 
         # Dimensions
         self.nCells = self.mesh.dimensions['nCells'].size
@@ -96,16 +126,16 @@ class MeshHandler:
         # Attributes
         self.sphere_radius = self.mesh.sphere_radius
 
-        self.variables = { 'latCells' : self.latCells,
-                           'lonCells' : self.lonCells,
-                           'nEdgesOnCell' : self.nEdgesOnCell,
-                           'cellsOnCell' : self.cellsOnCell,
-                           'cellsOnEdge' : self.cellsOnEdge,
-                           'cellsOnVertex' : self.cellsOnVertex,
-                           'indexToCellID' : self.indexToCellIDs,
-                           'indexToEdgeID' : self.indexToEdgeIDs,
+        self.variables = { 'latCells'        : self.latCells,
+                           'lonCells'        : self.lonCells,
+                           'nEdgesOnCell'    : self.nEdgesOnCell,
+                           'cellsOnCell'     : self.cellsOnCell,
+                           'cellsOnEdge'     : self.cellsOnEdge,
+                           'cellsOnVertex'   : self.cellsOnVertex,
+                           'indexToCellID'   : self.indexToCellIDs,
+                           'indexToEdgeID'   : self.indexToEdgeIDs,
                            'indexToVertexID' : self.indexToVertexIDs
-                         }
+                          }
 
 
     def nearest_cell(self, lat, lon):
@@ -190,10 +220,11 @@ class MeshHandler:
                       bdyMaskVertex,
                       inside,
                       unmarked,
+                      mesh,
                       format='NETCDF3_64BIT_OFFSET',
                       *args, 
                       **kwargs):
-        """ Subset the current mesh and return a new regional mesh with
+        """ Subset the mesh in self.mesh using mesh and return a new regional mesh with
         subsetted fields 
         
         regionalFname -- Desired filename for the regional subset
@@ -206,6 +237,7 @@ class MeshHandler:
         unmarked      -- The integer value that was used to mark cells,
                          edges, vertices as being 'outside' of the regional
                          mesh.
+        mesh          -- The mesh connectivity to use to subset self.mesh
         """
 
         # Don't pass on DEBUG to the regional mess - tone down output
@@ -224,9 +256,9 @@ class MeshHandler:
         indexingFields['edgesOnVertex'] = bdyMaskEdge
         indexingFields['cellsOnVertex'] = bdyMaskCell
 
-        glbBdyCellIDs = self.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
-        glbBdyEdgeIDs = self.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
-        glbBdyVertexIDs = self.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
+        glbBdyCellIDs =   mesh.indexToCellIDs[np.where(bdyMaskCell != unmarked)] - 1
+        glbBdyEdgeIDs =   mesh.indexToEdgeIDs[np.where(bdyMaskEdge != unmarked)] - 1
+        glbBdyVertexIDs = mesh.indexToVertexIDs[np.where(bdyMaskVertex != unmarked)] - 1
 
 
         if self._DEBUG_ > 0:
@@ -238,11 +270,11 @@ class MeshHandler:
         # len(bdyIndexToCellIDs) == nCells, then the specification was probably not
         # specified correctly
         force = False
-        if len(glbBdyCellIDs) == self.nCells and not force:
+        if len(glbBdyCellIDs) == mesh.nCells and not force:
             print("ERROR: The number of Cells in the specified region ",
                   "(", len(glbBdyCellIDs), ")")
             print("ERROR: appears to be equal number of cells in the global mesh",
-                  "(", self.nCells, ")")
+                  "(", mesh.nCells, ")")
             print("ERROR: which means there was perhaps a problem in specifying the")
             print("ERROR: region. Please insure your region specification is correct")
             sys.exit(-1)
@@ -271,17 +303,18 @@ class MeshHandler:
 
         # Make boundary Mask's between 0 and the number of specified relaxation
         # layers
-        region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
-        region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
-        region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices')) 
+        if self.check_grid():
+            region.mesh.createVariable('bdyMaskCell', 'i4', ('nCells',))
+            region.mesh.createVariable('bdyMaskEdge', 'i4', ('nEdges',))
+            region.mesh.createVariable('bdyMaskVertex', 'i4', ('nVertices'))
 
-        region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1 
-        region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
-        region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
+            region.mesh.variables['bdyMaskCell'][:] = bdyMaskCell[bdyMaskCell != 0] - 1
+            region.mesh.variables['bdyMaskEdge'][:] = bdyMaskEdge[bdyMaskEdge != 0] - 1
+            region.mesh.variables['bdyMaskVertex'][:] = bdyMaskVertex[bdyMaskVertex != 0] - 1
 
-        scan(bdyMaskCell)
-        scan(bdyMaskEdge)
-        scan(bdyMaskVertex)
+            scan(bdyMaskCell)
+            scan(bdyMaskEdge)
+            scan(bdyMaskVertex)
 
         # Variables - Create Variables
         for var in self.mesh.variables:
@@ -306,8 +339,8 @@ class MeshHandler:
                 continue
 
             print("Copying variable ", var, "...", end=' ', sep=''); sys.stdout.flush()
-            if var in self.variables:
-                arrTemp = self.variables[var] # Use the pre-loaded variable if possible
+            if var in mesh.variables:
+                arrTemp = mesh.variables[var] # Use the pre-loaded variable if possible
             else:
                 arrTemp = self.mesh.variables[var][:] # Else, read it from disk
 
@@ -351,10 +384,12 @@ class MeshHandler:
 
         return region
 
-    def copy_global_attributes(self, region):
-        """ Copy the global attributes into the regional mesh, but not 'np' """
-        region.mesh.on_a_sphere = self.mesh.on_a_sphere
-        region.mesh.sphere_radius = self.mesh.sphere_radius
+    def copy_global_attributes(self, mesh):
+        """ Copy the global attributes from mesh, onto self """
+        if self._DEBUG_ > 1:
+            print("DEBUG: Copying global attributes from", mesh.fname, "to", self.fname)
+        self.mesh.on_a_sphere = mesh.mesh.on_a_sphere
+        self.mesh.sphere_radius = mesh.mesh.sphere_radius
 
 
 def scan(arr):
