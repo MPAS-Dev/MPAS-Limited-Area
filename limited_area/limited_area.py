@@ -458,10 +458,21 @@ class LimitedArea():
                 boundaries[0][1::2] * rad2deg,boundaries[0][0::2] * rad2deg,
                 proj)
 
-            # Here we need a way of determining the "extent" (roughly, the diameter
-            # in meters) of the region given the latbdy and lonbdy arrays
-            extent = 3000000.0
+            # Logic to determine the "extent" (roughly, the diameter in meters)
+            # of the region given the latbdy and lonbdy arrays
+            # Convert all points from lat,lon coordinates to x,y
+            # distances (in meters) from the inPoint
+            xy=proj.transform_points(ccrs.PlateCarree(), lonbdy, latbdy)
 
+            # Find the extents of the box bounding these points and the
+            # diameter (length of diagonal)
+            min_x = min(xy[:,0])
+            max_x = max(xy[:,0])
+            min_y = min(xy[:,1])
+            max_y = max(xy[:,1])
+            diameter = math.sqrt((max_y-min_y)**2+(max_x-min_x)**2)
+
+            extent = diameter
             scaling = 0.5 * 1.25
             ax.set_extent([-scaling * extent, scaling * extent, -scaling * extent, scaling * extent], crs=proj)
 
