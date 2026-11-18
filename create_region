@@ -9,7 +9,7 @@ if __name__ == "__main__":
                    " and a file that specifies the regional area boundary.")
 
     epilog = ("For more information please see: "
-             "https://github.com/MiCurry/MPAS-Limited-Area")
+             "https://github.com/MPAS-Dev/MPAS-Limited-Area")
 
 
     parser = argparse.ArgumentParser(description=description,
